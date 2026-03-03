@@ -1,0 +1,2437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>PT LOG - Revenue Compass for Coaches</title>
+  
+  <!-- PWA Meta Tags -->
+  <meta name="description" content="Revenue tracking for personal trainers and fitness coaches" />
+  <meta name="theme-color" content="#06B6D4" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="PT LOG" />
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json" />
+  
+  <!-- Icons -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/icon-96x96.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    body { background: #111827; margin: 0; }
+    * { box-sizing: border-box; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    input[type="date"] { min-height: 50px; }
+    input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script type="text/babel">
+    const SUPABASE_URL = 'https://wjaqbxxlnmcosnzzktza.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqYXFieHhsbm1jb3NuenprdHphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2MTc5NzAsImV4cCI6MjA4NzE5Mzk3MH0.HuHA43JsQEUu9KRO95uDTl83Rpj528bJJdBv5KI5rhI';
+    
+    // ==========================================
+    // YOUR STRIPE PAYMENT LINKS - REPLACE THESE
+    // ==========================================
+    const STRIPE_LINKS = {
+      monthly: 'https://buy.stripe.com/YOUR_MONTHLY_LINK',
+      yearly: 'https://buy.stripe.com/YOUR_YEARLY_LINK',
+      lifetime: 'https://buy.stripe.com/YOUR_LIFETIME_LINK'
+    };
+    // ==========================================
+    
+    const { createClient } = supabase;
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { useState, useEffect } = React;
+
+    // Check if user just came from payment
+    const urlParams = new URLSearchParams(window.location.search);
+    const justPaid = urlParams.get('welcome') === 'true';
+
+    // Paywall Component - Shows when user has no active subscription
+    const Paywall = ({ email, onLogout, onRetry }) => {
+      const [retrying, setRetrying] = useState(false);
+
+      const handleRetry = async () => {
+        setRetrying(true);
+        await onRetry();
+        setRetrying(false);
+      };
+
+      return (
+        <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800 pointer-events-none" />
+          <div className="fixed top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="fixed bottom-0 left-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+          
+          <div className="relative max-w-4xl w-full">
+            {/* Just paid message */}
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-4 mb-6 text-center">
+              <p className="text-yellow-400 font-medium">🎉 Just completed payment?</p>
+              <p className="text-gray-400 text-sm mt-1">It may take up to 30 seconds to activate. Click below to check again.</p>
+              <button 
+                onClick={handleRetry} 
+                disabled={retrying}
+                className="mt-3 px-6 py-2 bg-yellow-500 hover:bg-yellow-400 disabled:bg-gray-600 text-gray-900 font-semibold rounded-xl text-sm"
+              >
+                {retrying ? 'Checking...' : 'Check My Subscription'}
+              </button>
+            </div>
+
+            <div className="text-center mb-10">
+              <h1 className="text-4xl font-bold text-white mb-4">Choose Your Plan</h1>
+              <p className="text-gray-400 text-lg">Get full access to PT LOG and start tracking your revenue</p>
+              <p className="text-gray-500 text-sm mt-2">Logged in as {email}</p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6 mb-10">
+              <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 hover:border-cyan-500/50 transition-all">
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold text-white mb-2">Monthly</h3>
+                  <div className="text-4xl font-bold text-white mb-1">€9</div>
+                  <div className="text-gray-400 text-sm mb-6">per month</div>
+                  <ul className="text-left space-y-3 mb-6">
+                    <li className="flex items-center text-gray-300 text-sm"><span className="text-emerald-400 mr-2">✓</span> All features included</li>
+                    <li className="flex items-center text-gray-300 text-sm"><span className="text-emerald-400 mr-2">✓</span> Unlimited clients</li>
+                    <li className="flex items-center text-gray-300 text-sm"><span className="text-emerald-400 mr-2">✓</span> Cancel anytime</li>
+                  </ul>
+                  <a href={STRIPE_LINKS.monthly} className="block w-full py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-xl transition-colors text-center">Get Started</a>
+                </div>
+              </div>
+
+              <div className="bg-gray-800 border-2 border-cyan-500 rounded-2xl p-6 relative transform md:-translate-y-2">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-cyan-500 text-gray-900 text-xs font-bold px-4 py-1 rounded-full">BEST VALUE</div>
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold text-white mb-2">Yearly</h3>
+                  <div className="text-4xl font-bold text-white mb-1">€79</div>
+                  <div className="text-gray-400 text-sm mb-1">per year</div>
+                  <div className="text-emerald-400 text-sm font-medium mb-6">Save €29 (3 months free!)</div>
+                  <ul className="text-left space-y-3 mb-6">
+                    <li className="flex items-center text-gray-300 text-sm"><span className="text-emerald-400 mr-2">✓</span> All features included</li>
+                    <li className="flex items-center text-gray-300 text-sm"><span className="text-emerald-400 mr-2">✓</span> Unlimited clients</li>
+                    <li className="flex items-center text-gray-300 text-sm"><span className="text-emerald-400 mr-2">✓</span> Priority support</li>
+                  </ul>
+                  <a href={STRIPE_LINKS.yearly} className="block w-full py-3 bg-cyan-500 hover:bg-cyan-400 text-gray-900 font-semibold rounded-xl transition-colors text-center">Get Started</a>
+                </div>
+              </div>
+
+              <div className="bg-gray-800 border border-yellow-500/50 rounded-2xl p-6 hover:border-yellow-500 transition-all">
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold text-white mb-2">Lifetime</h3>
+                  <div className="text-4xl font-bold text-white mb-1">€149</div>
+                  <div className="text-gray-400 text-sm mb-1">one-time payment</div>
+                  <div className="text-orange-400 text-sm font-medium mb-6">🔥 Only 50 spots!</div>
+                  <ul className="text-left space-y-3 mb-6">
+                    <li className="flex items-center text-gray-300 text-sm"><span className="text-emerald-400 mr-2">✓</span> All features forever</li>
+                    <li className="flex items-center text-gray-300 text-sm"><span className="text-emerald-400 mr-2">✓</span> All future updates</li>
+                    <li className="flex items-center text-gray-300 text-sm"><span className="text-emerald-400 mr-2">✓</span> Never pay again</li>
+                  </ul>
+                  <a href={STRIPE_LINKS.lifetime} className="block w-full py-3 bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-semibold rounded-xl transition-colors text-center">Get Lifetime Access</a>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-center">
+              <button onClick={onLogout} className="text-gray-500 hover:text-gray-300 text-sm">Logout</button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const Modal = ({ title, children, onClose }) => (
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={onClose}>
+        <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-semibold text-white">{title}</h3>
+            <button onClick={onClose} className="text-gray-400 hover:text-white text-xl">✕</button>
+          </div>
+          {children}
+        </div>
+      </div>
+    );
+
+    const MetricCard = ({ icon, value, label, trend, color }) => (
+      <div className="bg-gray-800/50 backdrop-blur border border-gray-700/50 rounded-2xl p-5 hover:border-gray-600 transition-all">
+        <div className="flex items-start justify-between">
+          <div className={`w-12 h-12 rounded-xl ${color} flex items-center justify-center text-2xl`}>{icon}</div>
+          {trend !== undefined && trend !== null && (
+            <span className={`text-xs px-2 py-1 rounded-full ${trend >= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
+              {trend >= 0 ? '↑' : '↓'} {Math.abs(trend)}%
+            </span>
+          )}
+        </div>
+        <div className="mt-4">
+          <div className="text-3xl font-bold text-white">{value}</div>
+          <div className="text-gray-400 text-sm mt-1">{label}</div>
+        </div>
+      </div>
+    );
+
+    const ProgressBar = ({ current, goal, label, color = "from-cyan-500 to-cyan-400" }) => {
+      const percentage = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
+      return (
+        <div className="mb-4">
+          <div className="flex justify-between mb-2">
+            <span className="text-gray-300 text-sm font-medium">{label}</span>
+            <span className="text-white text-sm font-semibold">{current.toLocaleString()} / {goal.toLocaleString()}</span>
+          </div>
+          <div className="h-3 bg-gray-700 rounded-full overflow-hidden">
+            <div className={`h-full rounded-full bg-gradient-to-r ${color} transition-all duration-700`} style={{ width: `${percentage}%` }} />
+          </div>
+        </div>
+      );
+    };
+
+    const MonthlyIncomeChart = ({ payments, currency = '€' }) => {
+      const monthlyData = [];
+      const now = new Date();
+      for (let i = 5; i >= 0; i--) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthName = date.toLocaleString('en-US', { month: 'short' });
+        const monthPayments = payments.filter(p => {
+          const pDate = new Date(p.date);
+          return pDate.getMonth() === date.getMonth() && pDate.getFullYear() === date.getFullYear();
+        });
+        const income = monthPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+        monthlyData.push({ month: monthName, income, isCurrentMonth: i === 0 });
+      }
+      const maxIncome = Math.max(...monthlyData.map(m => m.income), 1);
+      return (
+        <div className="flex items-end justify-between gap-3 h-48">
+          {monthlyData.map((month, i) => (
+            <div key={i} className="flex-1 flex flex-col items-center gap-2">
+              <span className="text-emerald-400 text-sm font-medium">{currency}{month.income >= 1000 ? (month.income/1000).toFixed(1)+'k' : month.income}</span>
+              <div className="w-full bg-gray-700/50 rounded-lg relative overflow-hidden" style={{ height: '120px' }}>
+                <div className={`absolute bottom-0 w-full rounded-lg transition-all duration-700 ${month.isCurrentMonth ? 'bg-gradient-to-t from-cyan-500 to-cyan-400' : 'bg-gradient-to-t from-emerald-600 to-emerald-400'}`} style={{ height: `${(month.income / maxIncome) * 100}%` }} />
+              </div>
+              <span className={`text-xs font-medium ${month.isCurrentMonth ? 'text-cyan-400' : 'text-gray-400'}`}>{month.month}</span>
+            </div>
+          ))}
+        </div>
+      );
+    };
+
+    const YearlyIncomePattern = ({ payments, currency = '€' }) => {
+      const now = new Date();
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const yearlyData = months.map((month, index) => {
+        const monthPayments = payments.filter(p => { const pDate = new Date(p.date); return pDate.getMonth() === index && pDate.getFullYear() === now.getFullYear(); });
+        return { month, income: monthPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) };
+      });
+      const totalIncome = yearlyData.reduce((sum, m) => sum + m.income, 0);
+      const avgIncome = yearlyData.filter(m => m.income > 0).length > 0 ? totalIncome / yearlyData.filter(m => m.income > 0).length : 0;
+      const getStrength = (income) => {
+        if (income === 0) return { color: 'bg-gray-700', textColor: 'text-gray-500' };
+        if (income >= avgIncome * 1.15) return { color: 'bg-emerald-500/30 border border-emerald-500/50', textColor: 'text-emerald-400' };
+        if (income <= avgIncome * 0.85) return { color: 'bg-red-500/20 border border-red-500/50', textColor: 'text-red-400' };
+        return { color: 'bg-cyan-500/20 border border-cyan-500/50', textColor: 'text-cyan-400' };
+      };
+      return (
+        <div>
+          <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-2 mb-6">
+            {yearlyData.map((m, i) => {
+              const strength = getStrength(m.income);
+              return (
+                <div key={i} className={`rounded-xl p-3 text-center ${strength.color} ${i === now.getMonth() ? 'ring-2 ring-cyan-400' : ''}`}>
+                  <div className="text-xs text-gray-400 mb-1">{m.month}</div>
+                  <div className={`text-sm font-bold ${strength.textColor}`}>{m.income > 0 ? `${currency}${(m.income/1000).toFixed(1)}k` : '-'}</div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-emerald-500/50"></div><span className="text-gray-400">Strong</span></div>
+            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-cyan-500/50"></div><span className="text-gray-400">Average</span></div>
+            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-red-500/30"></div><span className="text-gray-400">Weak</span></div>
+          </div>
+        </div>
+      );
+    };
+
+    const SessionsPerMonthChart = ({ payments, sessionLogs = [] }) => {
+      const now = new Date();
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const sessionData = months.map((month, index) => {
+        // Use session_logs if available, otherwise fall back to payment date
+        let sessions = 0;
+        if (sessionLogs.length > 0) {
+          sessions = sessionLogs.filter(l => { 
+            const lDate = new Date(l.completed_at); 
+            return lDate.getMonth() === index && lDate.getFullYear() === now.getFullYear(); 
+          }).length;
+        } else {
+          // Fallback: count from payments (old behavior)
+          const monthPayments = payments.filter(p => { const pDate = new Date(p.date); return pDate.getMonth() === index && pDate.getFullYear() === now.getFullYear(); });
+          sessions = monthPayments.reduce((sum, p) => sum + (p.sessions_completed || 0), 0);
+        }
+        return { month, sessions, isCurrentMonth: index === now.getMonth() };
+      });
+      const maxSessions = Math.max(...sessionData.map(m => m.sessions), 1);
+      const totalSessions = sessionData.reduce((sum, m) => sum + m.sessions, 0);
+      const avgSessions = sessionData.filter(m => m.sessions > 0).length > 0 ? Math.round(totalSessions / sessionData.filter(m => m.sessions > 0).length) : 0;
+      return (
+        <div>
+          <div className="flex items-end justify-between gap-1 h-32 mb-4">
+            {sessionData.map((m, i) => (
+              <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                <span className={`text-xs font-medium ${m.isCurrentMonth ? 'text-cyan-400' : 'text-purple-400'}`}>{m.sessions || ''}</span>
+                <div className="w-full bg-gray-700/50 rounded relative overflow-hidden" style={{ height: '80px' }}>
+                  <div className={`absolute bottom-0 w-full rounded ${m.isCurrentMonth ? 'bg-gradient-to-t from-cyan-500 to-cyan-400' : 'bg-gradient-to-t from-purple-600 to-purple-400'}`} style={{ height: `${(m.sessions / maxSessions) * 100}%` }} />
+                </div>
+                <span className={`text-xs ${m.isCurrentMonth ? 'text-cyan-400' : 'text-gray-500'}`}>{m.month.slice(0,1)}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-between text-sm pt-4 border-t border-gray-700">
+            <span className="text-gray-400">Total: <span className="text-white font-semibold">{totalSessions}</span></span>
+            <span className="text-gray-400">Avg: <span className="text-purple-400 font-semibold">{avgSessions}/mo</span></span>
+          </div>
+        </div>
+      );
+    };
+
+    // Auth Screen - Shows SIGN UP by default if coming from payment
+    const AuthScreen = ({ onLogin }) => {
+      const [isLogin, setIsLogin] = useState(!justPaid); // Show Sign Up if just paid
+      const [email, setEmail] = useState('');
+      const [password, setPassword] = useState('');
+      const [error, setError] = useState('');
+      const [loading, setLoading] = useState(false);
+      
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+        try {
+          const { data, error } = isLogin 
+            ? await supabaseClient.auth.signInWithPassword({ email, password })
+            : await supabaseClient.auth.signUp({ email, password });
+          if (error) throw error;
+          if (data.user) onLogin(data.user);
+        } catch (err) { setError(err.message); }
+        finally { setLoading(false); }
+      };
+      
+      return (
+        <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800 pointer-events-none" />
+          <div className="fixed top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="fixed bottom-0 left-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative bg-gray-800 border border-gray-700 rounded-2xl p-8 w-full max-w-md">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-cyan-400">PT LOG</h1>
+              <p className="text-gray-400 mt-2">Revenue Compass for Coaches</p>
+            </div>
+            
+            {/* Welcome message for users coming from payment */}
+            {justPaid && !isLogin && (
+              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 mb-6">
+                <p className="text-emerald-400 font-medium text-center">🎉 Payment successful!</p>
+                <p className="text-gray-400 text-sm text-center mt-1">Create your account using the <strong>same email</strong> you used for payment.</p>
+              </div>
+            )}
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-gray-400 text-sm mb-2">Email</label>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:outline-none" placeholder="Use the same email from payment" required />
+              </div>
+              <div>
+                <label className="block text-gray-400 text-sm mb-2">Password</label>
+                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:outline-none" placeholder="Min 6 characters" required minLength={6} />
+              </div>
+              {error && <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-red-400 text-sm">{error}</div>}
+              <button type="submit" disabled={loading} className="w-full py-3 bg-cyan-500 hover:bg-cyan-400 disabled:bg-gray-600 text-gray-900 font-semibold rounded-xl">{loading ? 'Loading...' : isLogin ? 'Sign In' : 'Create Account'}</button>
+            </form>
+            <p className="text-center mt-6 text-gray-400">{isLogin ? "Don't have an account?" : "Already have an account?"} <button onClick={() => setIsLogin(!isLogin)} className="text-cyan-400 hover:text-cyan-300">{isLogin ? 'Sign Up' : 'Sign In'}</button></p>
+          </div>
+        </div>
+      );
+    };
+
+    const App = () => {
+      const [user, setUser] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [subscription, setSubscription] = useState(null);
+      const [checkingSub, setCheckingSub] = useState(false);
+      const [clients, setClients] = useState([]);
+      const [payments, setPayments] = useState([]);
+      const [expenses, setExpenses] = useState([]);
+      const [targets, setTargets] = useState([]);
+      const [activeTab, setActiveTab] = useState('dashboard');
+      const [showNewClientModal, setShowNewClientModal] = useState(false);
+      const [showPaymentModal, setShowPaymentModal] = useState(false);
+      const [showExpenseModal, setShowExpenseModal] = useState(false);
+      const [showExpenseListModal, setShowExpenseListModal] = useState(false);
+      const [showTargetsModal, setShowTargetsModal] = useState(false);
+      const [showSettingsModal, setShowSettingsModal] = useState(false);
+      const [showEditClientModal, setShowEditClientModal] = useState(false);
+      const [showClientDetailModal, setShowClientDetailModal] = useState(false);
+      const [showChallengeModal, setShowChallengeModal] = useState(false);
+      const [showSessionDateModal, setShowSessionDateModal] = useState(false);
+      const [pendingSession, setPendingSession] = useState(null);
+      const [sessionDate, setSessionDate] = useState(new Date().toISOString().split('T')[0]);
+      const [sessionLogs, setSessionLogs] = useState([]);
+      const [selectedClient, setSelectedClient] = useState(null);
+      const [editingClient, setEditingClient] = useState(null);
+      const [editingExpense, setEditingExpense] = useState(null);
+      const [currency, setCurrency] = useState(() => localStorage.getItem('ptlog_currency') || '€');
+      const [darkMode, setDarkMode] = useState(() => localStorage.getItem('ptlog_darkmode') !== 'false');
+      const [businessName, setBusinessName] = useState(() => localStorage.getItem('ptlog_business_name') || '');
+      const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('ptlog_onboarded'));
+      const [swipingPayment, setSwipingPayment] = useState(null);
+      const [swipeX, setSwipeX] = useState(0);
+      const [weeklyCapacity, setWeeklyCapacity] = useState(() => parseInt(localStorage.getItem('ptlog_weekly_capacity')) || 30);
+      const [revenueSharePercent, setRevenueSharePercent] = useState(() => parseInt(localStorage.getItem('ptlog_revenue_share')) || 0);
+      const [monthlyChallenge, setMonthlyChallenge] = useState(() => JSON.parse(localStorage.getItem('ptlog_challenge') || '{"type":"sessions","target":40,"title":"Complete 40 Sessions"}'));
+      const [newChallenge, setNewChallenge] = useState({ type: 'sessions', target: 40, title: 'Complete 40 Sessions' });
+      const [newClient, setNewClient] = useState({ name: '', email: '', phone: '', referred_by: '' });
+      const [newPayment, setNewPayment] = useState({ client_id: '', type: 'Pack', amount: '', sessions: '', duration: 60, date: new Date().toISOString().split('T')[0] });
+      const [newExpense, setNewExpense] = useState({ category: 'Rent', amount: '', note: '', date: new Date().toISOString().split('T')[0], share_percentage: '', share_mode: 'monthly', share_payment_id: '' });
+      const [editTargets, setEditTargets] = useState({ revenueGoal: 5000, clientsGoal: 15 });
+
+      const currencies = ['€', '$', '£'];
+      const expenseCategories = ['Rent', 'Equipment', 'Share', 'Marketing', 'Insurance', 'Certifications', 'Software', 'Other'];
+      
+      const saveBusinessName = (name) => {
+        setBusinessName(name);
+        localStorage.setItem('ptlog_business_name', name);
+      };
+      
+      const saveRevenueShare = (percent) => {
+        setRevenueSharePercent(percent);
+        localStorage.setItem('ptlog_revenue_share', percent.toString());
+      };
+
+      const saveWeeklyCapacity = (hours) => {
+        setWeeklyCapacity(hours);
+        localStorage.setItem('ptlog_weekly_capacity', hours.toString());
+      };
+
+      const saveChallenge = () => {
+        setMonthlyChallenge(newChallenge);
+        localStorage.setItem('ptlog_challenge', JSON.stringify(newChallenge));
+
+        setShowChallengeModal(false);
+      };
+
+      const toggleDarkMode = () => {
+        const newMode = !darkMode;
+        setDarkMode(newMode);
+        localStorage.setItem('ptlog_darkmode', newMode.toString());
+      };
+
+      const completeOnboarding = () => {
+        setShowOnboarding(false);
+        localStorage.setItem('ptlog_onboarded', 'true');
+      };
+
+      const handleSwipeStart = (e, paymentId) => {
+        setSwipingPayment(paymentId);
+        setSwipeX(e.touches ? e.touches[0].clientX : e.clientX);
+      };
+
+      const handleSwipeMove = (e) => {
+        if (!swipingPayment) return;
+        const currentX = e.touches ? e.touches[0].clientX : e.clientX;
+        const diff = currentX - swipeX;
+        if (diff > 60) {
+          // Swipe right - complete session
+          const payment = payments.find(p => p.id === swipingPayment);
+          if (payment && payment.sessions_completed < payment.sessions) {
+            updateSession(payment.id, payment.sessions_completed, payment.sessions, 'add');
+          }
+          setSwipingPayment(null);
+        }
+      };
+
+      const handleSwipeEnd = () => {
+        setSwipingPayment(null);
+      };
+      
+      const saveCurrency = (curr) => {
+        setCurrency(curr);
+        localStorage.setItem('ptlog_currency', curr);
+      };
+
+      const handleEditClient = (client) => {
+        setEditingClient({ ...client });
+        setShowEditClientModal(true);
+      };
+
+      const handleViewClient = (client) => {
+        setSelectedClient(client);
+        setShowClientDetailModal(true);
+      };
+
+      const handleUpdateClient = async () => {
+        if (!editingClient?.name?.trim()) return;
+        await supabaseClient.from('clients').update({ name: editingClient.name, notes: editingClient.notes || '' }).eq('id', editingClient.id);
+        setShowEditClientModal(false);
+        setEditingClient(null);
+        fetchAllData();
+      };
+
+      const handleDeleteClient = async (clientId) => {
+        if (!confirm('Delete this client? Their payment history will be kept for your records.')) return;
+        await supabaseClient.from('clients').update({ status: 'Deleted' }).eq('id', clientId);
+        fetchAllData();
+      };
+
+      // Calculate streaks and milestones
+      const calculateStreaksAndMilestones = () => {
+        const now = new Date();
+        const milestones = [];
+        
+        // Total revenue milestones
+        const totalRev = payments.reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+        const revenueMilestones = [1000, 5000, 10000, 25000, 50000, 100000];
+        const reachedRevenue = revenueMilestones.filter(m => totalRev >= m);
+        if (reachedRevenue.length > 0) {
+          milestones.push({ type: 'revenue', value: reachedRevenue[reachedRevenue.length - 1], icon: '💰' });
+        }
+        
+        // Total sessions completed
+        const totalSessions = payments.reduce((s, p) => s + (p.sessions_completed || 0), 0);
+        const sessionMilestones = [50, 100, 250, 500, 1000, 2500];
+        const reachedSessions = sessionMilestones.filter(m => totalSessions >= m);
+        if (reachedSessions.length > 0) {
+          milestones.push({ type: 'sessions', value: reachedSessions[reachedSessions.length - 1], icon: '🏋️' });
+        }
+        
+        // Total clients
+        const totalClients = clients.filter(c => c.status !== 'Deleted').length;
+        const clientMilestones = [5, 10, 25, 50, 100];
+        const reachedClients = clientMilestones.filter(m => totalClients >= m);
+        if (reachedClients.length > 0) {
+          milestones.push({ type: 'clients', value: reachedClients[reachedClients.length - 1], icon: '👥' });
+        }
+        
+        // Calculate monthly streak (consecutive months hitting revenue goal)
+        let streak = 0;
+        const goal = targets.find(t => t.target_name === 'Monthly Revenue')?.goal || 5000;
+        for (let i = 0; i <= 12; i++) {
+          const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const monthPayments = payments.filter(p => {
+            const pDate = new Date(p.date);
+            return pDate.getMonth() === date.getMonth() && pDate.getFullYear() === date.getFullYear();
+          });
+          const monthRevenue = monthPayments.reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+          if (monthRevenue >= goal) {
+            streak++;
+          } else if (i > 0) {
+            break;
+          }
+        }
+        
+        return { milestones, streak, totalRev, totalSessions, totalClients };
+      };
+
+      // Calculate advanced analytics
+      const calculateAdvancedAnalytics = () => {
+        const now = new Date();
+        
+        // Income by Type
+        const incomeByType = {
+          Single: payments.filter(p => p.type === 'Single').reduce((s, p) => s + parseFloat(p.amount || 0), 0),
+          Pack: payments.filter(p => p.type === 'Pack').reduce((s, p) => s + parseFloat(p.amount || 0), 0),
+          Monthly: payments.filter(p => p.type === 'Monthly').reduce((s, p) => s + parseFloat(p.amount || 0), 0)
+        };
+        const totalIncome = incomeByType.Single + incomeByType.Pack + incomeByType.Monthly;
+
+        // Best Day of Week
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const incomeByDay = [0, 0, 0, 0, 0, 0, 0];
+        payments.forEach(p => {
+          const day = new Date(p.date).getDay();
+          incomeByDay[day] += parseFloat(p.amount || 0);
+        });
+        const bestDayIndex = incomeByDay.indexOf(Math.max(...incomeByDay));
+        const bestDay = { name: dayNames[bestDayIndex], amount: incomeByDay[bestDayIndex] };
+
+        // Average Pack Size
+        const packs = payments.filter(p => p.type === 'Pack');
+        const avgPackSize = packs.length > 0 ? packs.reduce((s, p) => s + (p.sessions || 0), 0) / packs.length : 0;
+        const avgPackValue = packs.length > 0 ? packs.reduce((s, p) => s + parseFloat(p.amount || 0), 0) / packs.length : 0;
+
+        // Client Retention Rate
+        const clientsWithMultiplePayments = clients.filter(c => {
+          const clientPayments = payments.filter(p => p.client_id === c.id);
+          return clientPayments.length > 1;
+        }).length;
+        const activeClientCount = clients.filter(c => c.status !== 'Deleted').length;
+        const retentionRate = activeClientCount > 0 ? (clientsWithMultiplePayments / activeClientCount) * 100 : 0;
+
+        // Sessions by Day
+        const sessionsByDay = [0, 0, 0, 0, 0, 0, 0];
+        payments.forEach(p => {
+          const day = new Date(p.date).getDay();
+          sessionsByDay[day] += (p.sessions_completed || 0);
+        });
+
+        // === NEW FEATURES ===
+
+        // 1. Upsell Opportunities - clients who consistently buy small packs and might upgrade
+        const upsellOpportunities = clients.filter(c => {
+          const clientPacks = payments.filter(p => p.client_id === c.id && p.type === 'Pack');
+          if (clientPacks.length < 2) return false;
+          const avgSessions = clientPacks.reduce((s, p) => s + (p.sessions || 0), 0) / clientPacks.length;
+          const completionRate = clientPacks.reduce((s, p) => s + (p.sessions_completed || 0), 0) / clientPacks.reduce((s, p) => s + (p.sessions || 0), 0);
+          return avgSessions < 10 && completionRate > 0.8; // Small packs, high completion
+        }).map(c => ({
+          ...c,
+          currentAvgPack: payments.filter(p => p.client_id === c.id && p.type === 'Pack').reduce((s, p) => s + (p.sessions || 0), 0) / payments.filter(p => p.client_id === c.id && p.type === 'Pack').length,
+          totalSpent: payments.filter(p => p.client_id === c.id).reduce((s, p) => s + parseFloat(p.amount || 0), 0)
+        }));
+
+        // 2. Capacity Utilization - use session_logs if available
+        const thisMonthSessions = sessionLogs.length > 0 
+          ? sessionLogs.filter(l => {
+              const d = new Date(l.completed_at);
+              return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+            }).length
+          : payments.filter(p => {
+              const d = new Date(p.date);
+              return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+            }).reduce((s, p) => s + (p.sessions_completed || 0), 0);
+        const monthlyCapacity = weeklyCapacity * 4;
+        const capacityUtilization = monthlyCapacity > 0 ? (thisMonthSessions / monthlyCapacity) * 100 : 0;
+        const availableSlots = Math.max(0, monthlyCapacity - thisMonthSessions);
+
+        // 3. Workload Trend (compare last 3 months) - use session_logs if available
+        const getMonthSessions = (monthsAgo) => {
+          const d = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1);
+          if (sessionLogs.length > 0) {
+            return sessionLogs.filter(l => {
+              const ld = new Date(l.completed_at);
+              return ld.getMonth() === d.getMonth() && ld.getFullYear() === d.getFullYear();
+            }).length;
+          }
+          return payments.filter(p => {
+            const pd = new Date(p.date);
+            return pd.getMonth() === d.getMonth() && pd.getFullYear() === d.getFullYear();
+          }).reduce((s, p) => s + (p.sessions_completed || 0), 0);
+        };
+        const workloadTrend = [
+          { month: 'This Month', sessions: getMonthSessions(0) },
+          { month: 'Last Month', sessions: getMonthSessions(1) },
+          { month: '2 Months Ago', sessions: getMonthSessions(2) }
+        ];
+        const workloadDirection = workloadTrend[0].sessions > workloadTrend[1].sessions ? 'up' : workloadTrend[0].sessions < workloadTrend[1].sessions ? 'down' : 'stable';
+
+        // 4. Average Client Lifespan
+        const clientLifespans = clients.filter(c => c.status !== 'Deleted').map(c => {
+          const clientPayments = payments.filter(p => p.client_id === c.id).sort((a, b) => new Date(a.date) - new Date(b.date));
+          if (clientPayments.length < 1) return 0;
+          const firstPayment = new Date(clientPayments[0].date);
+          const lastPayment = new Date(clientPayments[clientPayments.length - 1].date);
+          return (lastPayment - firstPayment) / (1000 * 60 * 60 * 24 * 30); // months
+        }).filter(l => l > 0);
+        const avgClientLifespan = clientLifespans.length > 0 ? clientLifespans.reduce((s, l) => s + l, 0) / clientLifespans.length : 0;
+
+        // 5. Referral Stats
+        const referrers = clients.filter(c => c.referred_by).map(c => c.referred_by);
+        const referralCounts = {};
+        referrers.forEach(r => { referralCounts[r] = (referralCounts[r] || 0) + 1; });
+        const topReferrers = Object.entries(referralCounts)
+          .map(([id, count]) => ({ client: clients.find(c => c.id === id), count }))
+          .filter(r => r.client)
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5);
+        const totalReferrals = referrers.length;
+
+        // 6. Win-back Alerts (clients with no activity in 45+ days)
+        const winbackAlerts = clients.filter(c => {
+          if (c.status === 'Deleted') return false;
+          const lastPayment = payments.filter(p => p.client_id === c.id).sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+          if (!lastPayment) return false;
+          const daysSince = (now - new Date(lastPayment.date)) / (1000 * 60 * 60 * 24);
+          const isComplete = lastPayment.sessions_completed >= lastPayment.sessions;
+          return isComplete && daysSince > 45;
+        }).map(c => {
+          const lastPayment = payments.filter(p => p.client_id === c.id).sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+          return {
+            ...c,
+            daysSinceContact: Math.floor((now - new Date(lastPayment.date)) / (1000 * 60 * 60 * 24)),
+            totalSpent: payments.filter(p => p.client_id === c.id).reduce((s, p) => s + parseFloat(p.amount || 0), 0)
+          };
+        }).sort((a, b) => b.totalSpent - a.totalSpent);
+
+        // 7. Year-over-Year Growth
+        const thisYearRevenue = payments.filter(p => new Date(p.date).getFullYear() === now.getFullYear()).reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+        const lastYearRevenue = payments.filter(p => new Date(p.date).getFullYear() === now.getFullYear() - 1).reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+        const yoyGrowth = lastYearRevenue > 0 ? ((thisYearRevenue - lastYearRevenue) / lastYearRevenue) * 100 : null;
+        
+        // Same month comparison
+        const thisMonthThisYear = payments.filter(p => {
+          const d = new Date(p.date);
+          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        }).reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+        const thisMonthLastYear = payments.filter(p => {
+          const d = new Date(p.date);
+          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() - 1;
+        }).reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+        const monthYoyGrowth = thisMonthLastYear > 0 ? ((thisMonthThisYear - thisMonthLastYear) / thisMonthLastYear) * 100 : null;
+
+        // 8. Challenge Progress
+        const challengeProgress = (() => {
+          const thisMonth = payments.filter(p => {
+            const d = new Date(p.date);
+            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+          });
+          if (monthlyChallenge.type === 'sessions') {
+            // Use session_logs if available for accurate session date tracking
+            if (sessionLogs.length > 0) {
+              return sessionLogs.filter(l => {
+                const d = new Date(l.completed_at);
+                return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+              }).length;
+            }
+            return thisMonth.reduce((s, p) => s + (p.sessions_completed || 0), 0);
+          } else if (monthlyChallenge.type === 'revenue') {
+            return thisMonth.reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+          } else if (monthlyChallenge.type === 'clients') {
+            return new Set(thisMonth.map(p => p.client_id)).size;
+          }
+          return 0;
+        })();
+
+        // 9. Extended Milestones
+        const extendedMilestones = [];
+        const totalSessions = sessionLogs.length > 0 ? sessionLogs.length : payments.reduce((s, p) => s + (p.sessions_completed || 0), 0);
+        const totalClients = clients.filter(c => c.status !== 'Deleted').length;
+        
+        // Revenue milestones
+        [1000, 2500, 5000, 10000, 25000, 50000, 100000].forEach(m => {
+          if (totalIncome >= m) extendedMilestones.push({ type: 'revenue', value: m, icon: '💰', label: `${currency}${m >= 1000 ? m/1000 + 'k' : m} Earned` });
+        });
+        // Session milestones
+        [100, 250, 500, 1000, 2500, 5000].forEach(m => {
+          if (totalSessions >= m) extendedMilestones.push({ type: 'sessions', value: m, icon: '🏋️', label: `${m} Sessions` });
+        });
+        // Client milestones
+        [10, 25, 50, 100].forEach(m => {
+          if (totalClients >= m) extendedMilestones.push({ type: 'clients', value: m, icon: '👥', label: `${m} Clients` });
+        });
+        // Streak milestones
+        const { streak } = calculateStreaksAndMilestones();
+        [3, 6, 12].forEach(m => {
+          if (streak >= m) extendedMilestones.push({ type: 'streak', value: m, icon: '🔥', label: `${m} Month Streak` });
+        });
+
+        // === EXPENSE & PROFIT ANALYTICS ===
+        
+        // This month base expenses (without share)
+        const thisMonthBaseExpenses = expenses.filter(e => {
+          const d = new Date(e.date);
+          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        }).reduce((s, e) => s + parseFloat(e.amount || 0), 0);
+        
+        // This month revenue
+        const thisMonthRevenue = payments.filter(p => {
+          const d = new Date(p.date);
+          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        }).reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+        
+        // Revenue share calculation (percentage of revenue)
+        const thisMonthShare = (thisMonthRevenue * revenueSharePercent) / 100;
+        const thisMonthExpenses = thisMonthBaseExpenses + thisMonthShare;
+        
+        // Last month expenses
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastMonthBaseExpenses = expenses.filter(e => {
+          const d = new Date(e.date);
+          return d.getMonth() === lastMonth.getMonth() && d.getFullYear() === lastMonth.getFullYear();
+        }).reduce((s, e) => s + parseFloat(e.amount || 0), 0);
+        const lastMonthRevForShare = payments.filter(p => {
+          const d = new Date(p.date);
+          return d.getMonth() === lastMonth.getMonth() && d.getFullYear() === lastMonth.getFullYear();
+        }).reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+        const lastMonthExpenses = lastMonthBaseExpenses + (lastMonthRevForShare * revenueSharePercent / 100);
+        
+        // Profit calculations
+        const thisMonthProfit = thisMonthRevenue - thisMonthExpenses;
+        const profitMargin = thisMonthRevenue > 0 ? (thisMonthProfit / thisMonthRevenue) * 100 : 0;
+        
+        // Total expenses (including share on all revenue)
+        const totalShare = (totalIncome * revenueSharePercent) / 100;
+        const totalBaseExpenses = expenses.reduce((s, e) => s + parseFloat(e.amount || 0), 0);
+        const totalExpenses = totalBaseExpenses + totalShare;
+        const totalProfit = totalIncome - totalExpenses;
+        const totalProfitMargin = totalIncome > 0 ? (totalProfit / totalIncome) * 100 : 0;
+        
+        // Expenses by category (add Share as calculated)
+        const expensesByCategory = {};
+        expenseCategories.forEach(cat => {
+          expensesByCategory[cat] = expenses.filter(e => e.category === cat).reduce((s, e) => s + parseFloat(e.amount || 0), 0);
+        });
+        expensesByCategory['Share'] = thisMonthShare; // Add calculated share
+        
+        // Expense trend (last 6 months) - include share
+        const expenseTrend = [];
+        for (let i = 5; i >= 0; i--) {
+          const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const monthName = date.toLocaleString('en-US', { month: 'short' });
+          const monthBaseExpenses = expenses.filter(e => {
+            const eDate = new Date(e.date);
+            return eDate.getMonth() === date.getMonth() && eDate.getFullYear() === date.getFullYear();
+          }).reduce((s, e) => s + parseFloat(e.amount || 0), 0);
+          const monthRevenue = payments.filter(p => {
+            const pDate = new Date(p.date);
+            return pDate.getMonth() === date.getMonth() && pDate.getFullYear() === date.getFullYear();
+          }).reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+          const monthShare = (monthRevenue * revenueSharePercent) / 100;
+          const monthExpenses = monthBaseExpenses + monthShare;
+          expenseTrend.push({ month: monthName, expenses: monthExpenses, revenue: monthRevenue, profit: monthRevenue - monthExpenses });
+        }
+        
+        // Expense change vs last month
+        const expenseChange = lastMonthExpenses > 0 ? ((thisMonthExpenses - lastMonthExpenses) / lastMonthExpenses) * 100 : 0;
+
+        // === MONTHLY MEMBERSHIP STATS ===
+        const monthlyPayments = payments.filter(p => p.type === 'Monthly');
+        const monthlyStats = {
+          totalMembers: new Set(monthlyPayments.map(p => p.client_id)).size,
+          totalSessionsIncluded: monthlyPayments.reduce((s, p) => s + (p.sessions || 0), 0),
+          totalSessionsUsed: monthlyPayments.reduce((s, p) => s + (p.sessions_completed || 0), 0),
+          utilizationRate: 0,
+          avgSessionsPerMember: 0,
+          avgUtilizationPerMember: 0
+        };
+        if (monthlyStats.totalSessionsIncluded > 0) {
+          monthlyStats.utilizationRate = (monthlyStats.totalSessionsUsed / monthlyStats.totalSessionsIncluded) * 100;
+        }
+        if (monthlyStats.totalMembers > 0) {
+          monthlyStats.avgSessionsPerMember = monthlyStats.totalSessionsIncluded / monthlyPayments.length;
+        }
+        // Per-client monthly stats
+        const monthlyClientStats = [];
+        const monthlyClientIds = [...new Set(monthlyPayments.map(p => p.client_id))];
+        monthlyClientIds.forEach(clientId => {
+          const clientPayments = monthlyPayments.filter(p => p.client_id === clientId);
+          const client = clients.find(c => c.id === clientId);
+          const included = clientPayments.reduce((s, p) => s + (p.sessions || 0), 0);
+          const used = clientPayments.reduce((s, p) => s + (p.sessions_completed || 0), 0);
+          const util = included > 0 ? (used / included) * 100 : 0;
+          monthlyClientStats.push({
+            client,
+            payments: clientPayments.length,
+            sessionsIncluded: included,
+            sessionsUsed: used,
+            utilization: util
+          });
+        });
+
+        return { 
+          incomeByType, 
+          totalIncome, 
+          bestDay, 
+          avgPackSize, 
+          avgPackValue, 
+          retentionRate,
+          incomeByDay,
+          sessionsByDay,
+          dayNames,
+          // New features
+          upsellOpportunities,
+          capacityUtilization,
+          availableSlots,
+          monthlyCapacity,
+          thisMonthSessions,
+          workloadTrend,
+          workloadDirection,
+          avgClientLifespan,
+          topReferrers,
+          totalReferrals,
+          winbackAlerts,
+          thisYearRevenue,
+          lastYearRevenue,
+          yoyGrowth,
+          thisMonthThisYear,
+          thisMonthLastYear,
+          monthYoyGrowth,
+          challengeProgress,
+          extendedMilestones,
+          // Expense analytics
+          thisMonthExpenses,
+          thisMonthShare,
+          thisMonthBaseExpenses,
+          lastMonthExpenses,
+          thisMonthProfit,
+          profitMargin,
+          totalExpenses,
+          totalProfit,
+          totalProfitMargin,
+          expensesByCategory,
+          expenseTrend,
+          expenseChange,
+          // Monthly membership stats
+          monthlyStats,
+          monthlyClientStats
+        };
+      };
+
+      useEffect(() => {
+        supabaseClient.auth.getSession().then(({ data: { session } }) => { setUser(session?.user ?? null); setLoading(false); });
+        const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((_event, session) => { setUser(session?.user ?? null); });
+        return () => subscription.unsubscribe();
+      }, []);
+
+      useEffect(() => { if (user) checkSubscription(); }, [user]);
+
+      const checkSubscription = async () => {
+        setCheckingSub(true);
+        try {
+          const { data } = await supabaseClient.from('subscriptions').select('*').eq('email', user.email).eq('status', 'active').single();
+          if (data) {
+            if (data.plan_type !== 'lifetime' && data.expires_at && new Date(data.expires_at) < new Date()) {
+              setSubscription(null);
+            } else {
+              setSubscription(data);
+              fetchAllData();
+            }
+          } else { setSubscription(null); }
+        } catch { setSubscription(null); }
+        finally { setCheckingSub(false); }
+      };
+
+      const fetchAllData = async () => {
+        const [c, p, t, e, s] = await Promise.all([
+          supabaseClient.from('clients').select('*').order('created_at', { ascending: false }),
+          supabaseClient.from('payments').select('*, clients(name)').order('date', { ascending: false }),
+          supabaseClient.from('targets').select('*'),
+          supabaseClient.from('expenses').select('*').order('date', { ascending: false }),
+          supabaseClient.from('session_logs').select('*').order('completed_at', { ascending: false })
+        ]);
+        setClients(c.data || []);
+        setPayments(p.data || []);
+        setExpenses(e.data || []);
+        setSessionLogs(s.data || []);
+        if (t.data?.length === 0) {
+          const def = [{ target_name: 'Monthly Revenue', goal: 5000, user_id: user.id }, { target_name: 'Active Clients', goal: 15, user_id: user.id }];
+          await supabaseClient.from('targets').insert(def);
+          setTargets(def);
+        } else { setTargets(t.data || []); }
+      };
+
+      const handleAddExpense = async () => {
+        // For Share, calculate amount from percentage
+        if (newExpense.category === 'Share') {
+          if (!newExpense.share_percentage) return;
+          
+          let baseAmount = 0;
+          let noteText = '';
+          
+          if (newExpense.share_mode === 'monthly') {
+            // Calculate from monthly revenue
+            const expenseDate = new Date(newExpense.date);
+            baseAmount = payments.filter(p => {
+              const pDate = new Date(p.date);
+              return pDate.getMonth() === expenseDate.getMonth() && pDate.getFullYear() === expenseDate.getFullYear();
+            }).reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+            const monthName = expenseDate.toLocaleString('en', { month: 'short', year: 'numeric' });
+            noteText = `${newExpense.share_percentage}% of ${monthName} revenue (${currency}${baseAmount.toFixed(0)})`;
+          } else if (newExpense.share_mode === 'payment') {
+            // Calculate from specific payment
+            if (!newExpense.share_payment_id) return;
+            const payment = payments.find(p => p.id === newExpense.share_payment_id);
+            baseAmount = parseFloat(payment?.amount || 0);
+            noteText = `${newExpense.share_percentage}% of ${payment?.clients?.name} - ${currency}${baseAmount.toFixed(0)}`;
+          }
+          
+          const shareAmount = baseAmount * (parseFloat(newExpense.share_percentage) / 100);
+          
+          await supabaseClient.from('expenses').insert([{
+            category: 'Share',
+            amount: shareAmount,
+            note: noteText,
+            date: newExpense.date,
+            user_id: user.id
+          }]);
+        } else {
+          if (!newExpense.amount) return;
+          await supabaseClient.from('expenses').insert([{
+            category: newExpense.category,
+            amount: parseFloat(newExpense.amount),
+            note: newExpense.note || '',
+            date: newExpense.date,
+            user_id: user.id
+          }]);
+        }
+        setNewExpense({ category: 'Rent', amount: '', note: '', date: new Date().toISOString().split('T')[0], share_percentage: '', share_mode: 'monthly', share_payment_id: '' });
+        setShowExpenseModal(false);
+        fetchAllData();
+      };
+
+      const handleUpdateExpense = async () => {
+        if (!editingExpense?.amount) return;
+        await supabaseClient.from('expenses').update({
+          category: editingExpense.category,
+          amount: parseFloat(editingExpense.amount),
+          note: editingExpense.note || '',
+          date: editingExpense.date
+        }).eq('id', editingExpense.id);
+        setEditingExpense(null);
+        fetchAllData();
+      };
+
+      const handleDeleteExpense = async (id) => {
+        if (!confirm('Delete this expense?')) return;
+        await supabaseClient.from('expenses').delete().eq('id', id);
+        fetchAllData();
+      };
+
+      const handleAddClient = async () => {
+        if (!newClient.name.trim()) return;
+        const clientData = { name: newClient.name, user_id: user.id, status: 'Active' };
+        if (newClient.referred_by) clientData.referred_by = newClient.referred_by;
+        await supabaseClient.from('clients').insert([clientData]);
+        setNewClient({ name: '', email: '', phone: '', referred_by: '' }); setShowNewClientModal(false); fetchAllData();
+      };
+
+      const handleAddPayment = async () => {
+        if (!newPayment.client_id || !newPayment.amount || !newPayment.sessions) return;
+        // For Single sessions, amount is price per session, so multiply by sessions
+        // For Pack/Monthly, amount is total package price
+        const totalAmount = newPayment.type === 'Single' 
+          ? parseFloat(newPayment.amount) * parseInt(newPayment.sessions)
+          : parseFloat(newPayment.amount);
+        await supabaseClient.from('payments').insert([{ 
+          client_id: newPayment.client_id, 
+          type: newPayment.type, 
+          amount: totalAmount, 
+          sessions: parseInt(newPayment.sessions), 
+          sessions_completed: 0, 
+          duration: newPayment.duration || 60,
+          user_id: user.id, 
+          date: newPayment.date 
+        }]);
+        setNewPayment({ client_id: '', type: 'Pack', amount: '', sessions: '', duration: 60, date: new Date().toISOString().split('T')[0] }); 
+        setShowPaymentModal(false); 
+        fetchAllData();
+      };
+
+      const updateSession = async (id, curr, total, action) => {
+        if (action === 'add' && curr < total) {
+          // Show date picker modal for adding session
+          setPendingSession({ id, curr, total });
+          setSessionDate(new Date().toISOString().split('T')[0]);
+          setShowSessionDateModal(true);
+        } else if (action === 'deduct' && curr > 0) {
+          // Deduct: remove the most recent session log and decrement counter
+          const newVal = curr - 1;
+          // Optimistic update
+          setPayments(prev => prev.map(p => p.id === id ? {...p, sessions_completed: newVal} : p));
+          // Update database
+          await supabaseClient.from('payments').update({ sessions_completed: newVal }).eq('id', id);
+          // Delete most recent session log for this payment
+          const latestLog = sessionLogs.filter(l => l.payment_id === id).sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at))[0];
+          if (latestLog) {
+            await supabaseClient.from('session_logs').delete().eq('id', latestLog.id);
+            setSessionLogs(prev => prev.filter(l => l.id !== latestLog.id));
+          }
+        }
+      };
+
+      const confirmAddSession = async () => {
+        if (!pendingSession) return;
+        const { id, curr, total } = pendingSession;
+        const newVal = Math.min(curr + 1, total);
+        
+        // Optimistic update
+        setPayments(prev => prev.map(p => p.id === id ? {...p, sessions_completed: newVal} : p));
+        
+        // Update sessions_completed counter
+        await supabaseClient.from('payments').update({ sessions_completed: newVal }).eq('id', id);
+        
+        // Add session log with the selected date
+        const { data } = await supabaseClient.from('session_logs').insert([{
+          payment_id: id,
+          completed_at: sessionDate,
+          user_id: user.id
+        }]).select();
+        
+        if (data) {
+          setSessionLogs(prev => [data[0], ...prev]);
+        }
+        
+        setShowSessionDateModal(false);
+        setPendingSession(null);
+      };
+
+      const handleLogout = async () => { await supabaseClient.auth.signOut(); setUser(null); setSubscription(null); };
+
+      const handleUpdateTargets = async () => {
+        const rev = targets.find(t => t.target_name === 'Monthly Revenue');
+        const cli = targets.find(t => t.target_name === 'Active Clients');
+        if (rev) await supabaseClient.from('targets').update({ goal: editTargets.revenueGoal }).eq('id', rev.id);
+        if (cli) await supabaseClient.from('targets').update({ goal: editTargets.clientsGoal }).eq('id', cli.id);
+        setShowTargetsModal(false); fetchAllData();
+      };
+
+      const now = new Date();
+      const thisMonthPayments = payments.filter(p => { const d = new Date(p.date); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); });
+      const thisMonthRevenue = thisMonthPayments.reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+      const lastMonthPayments = payments.filter(p => { const d = new Date(p.date); const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1); return d.getMonth() === lm.getMonth() && d.getFullYear() === lm.getFullYear(); });
+      const lastMonthRevenue = lastMonthPayments.reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+      const totalRevenue = payments.reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+      const revenueTrend = lastMonthRevenue > 0 ? Math.round(((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100) : null;
+      const activeClients = clients.filter(c => c.status === 'Active').length;
+      const renewalsSoon = payments.filter(p => (p.sessions - p.sessions_completed) <= 2 && (p.sessions - p.sessions_completed) > 0);
+      const revenueTarget = targets.find(t => t.target_name === 'Monthly Revenue');
+      const clientsTarget = targets.find(t => t.target_name === 'Active Clients');
+
+      if (loading) return <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-100'} flex items-center justify-center`}><div className="text-cyan-400 text-xl">Loading...</div></div>;
+      if (!user) return <AuthScreen onLogin={setUser} />;
+      if (checkingSub) return <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-100'} flex items-center justify-center`}><div className="text-cyan-400 text-xl">Checking subscription...</div></div>;
+      if (!subscription) return <Paywall email={user.email} onLogout={handleLogout} onRetry={checkSubscription} />;
+
+      const themeClasses = darkMode ? {
+        bg: 'bg-gray-900',
+        bgCard: 'bg-gray-800/50',
+        bgInput: 'bg-gray-700',
+        text: 'text-white',
+        textMuted: 'text-gray-400',
+        border: 'border-gray-700/50'
+      } : {
+        bg: 'bg-gray-50',
+        bgCard: 'bg-white',
+        bgInput: 'bg-gray-100',
+        text: 'text-gray-900',
+        textMuted: 'text-gray-600',
+        border: 'border-gray-200'
+      };
+
+      return (
+        <div className={`min-h-screen ${themeClasses.bg} ${themeClasses.text}`}>
+          {darkMode && <>
+            <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800 pointer-events-none" />
+            <div className="fixed top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="fixed bottom-0 left-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+          </>}
+
+          {/* Onboarding Tips Modal */}
+          {showOnboarding && (
+            <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+              <div className={`${themeClasses.bgCard} rounded-2xl p-6 max-w-md w-full border ${themeClasses.border} backdrop-blur`}>
+                <h2 className="text-2xl font-bold text-cyan-400 mb-4">Welcome to PT LOG! 🎉</h2>
+                <div className="space-y-4 mb-6">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center flex-shrink-0">1</div>
+                    <div>
+                      <div className={`font-medium ${themeClasses.text}`}>Add Your Clients</div>
+                      <div className={`text-sm ${themeClasses.textMuted}`}>Click "+ Client" to add your first client</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">2</div>
+                    <div>
+                      <div className={`font-medium ${themeClasses.text}`}>Log Payments</div>
+                      <div className={`text-sm ${themeClasses.textMuted}`}>Click "+ Payment" when clients pay you</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0">3</div>
+                    <div>
+                      <div className={`font-medium ${themeClasses.text}`}>Track Sessions</div>
+                      <div className={`text-sm ${themeClasses.textMuted}`}>Swipe right or tap + to mark sessions complete</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">4</div>
+                    <div>
+                      <div className={`font-medium ${themeClasses.text}`}>Watch Your Revenue Grow</div>
+                      <div className={`text-sm ${themeClasses.textMuted}`}>See analytics, hit targets, earn achievements!</div>
+                    </div>
+                  </div>
+                </div>
+                <button onClick={completeOnboarding} className="w-full py-3 bg-cyan-500 hover:bg-cyan-400 text-gray-900 rounded-xl font-semibold">Let's Go! 🚀</button>
+              </div>
+            </div>
+          )}
+
+          {showNewClientModal && <Modal title="New Client" onClose={() => setShowNewClientModal(false)}>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-400 text-sm mb-2">Client Name *</label>
+                <input type="text" value={newClient.name} onChange={(e) => setNewClient({...newClient, name: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:outline-none" placeholder="Enter client name" autoFocus />
+              </div>
+              {clients.filter(c => c.status !== 'Deleted').length > 0 && (
+                <div>
+                  <label className="block text-gray-400 text-sm mb-2">Referred By <span className="text-gray-500">(optional)</span></label>
+                  <select value={newClient.referred_by} onChange={(e) => setNewClient({...newClient, referred_by: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:outline-none">
+                    <option value="">No referral</option>
+                    {clients.filter(c => c.status !== 'Deleted').map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+              )}
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setShowNewClientModal(false)} className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-medium">Cancel</button>
+                <button onClick={handleAddClient} disabled={!newClient.name.trim()} className="flex-1 py-3 bg-cyan-500 hover:bg-cyan-400 disabled:bg-gray-600 text-gray-900 rounded-xl font-medium">Add Client</button>
+              </div>
+            </div>
+          </Modal>}
+
+          {showPaymentModal && <Modal title="Add Payment" onClose={() => setShowPaymentModal(false)}>
+            <div className="space-y-4">
+              {/* Client Selection */}
+              <div>
+                <label className="block text-gray-400 text-sm mb-2">Client *</label>
+                <select value={newPayment.client_id} onChange={(e) => setNewPayment({...newPayment, client_id: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:outline-none">
+                  <option value="">Select client...</option>
+                  {clients.filter(c => c.status !== 'Deleted').map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              
+              {/* Payment Type */}
+              <div>
+                <label className="block text-gray-400 text-sm mb-2">Type</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {['Single','Pack','Monthly'].map(t => (
+                    <button key={t} onClick={() => setNewPayment({...newPayment, type: t})} className={`p-3 rounded-xl border text-sm font-medium transition-all ${newPayment.type === t ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'bg-gray-700/50 border-gray-600 text-gray-300 hover:border-gray-500'}`}>{t}</button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Session Duration */}
+              <div>
+                <label className="block text-gray-400 text-sm mb-2">Session Length</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[30, 45, 60, 90].map(d => (
+                    <button key={d} onClick={() => setNewPayment({...newPayment, duration: d})} className={`p-3 rounded-xl border text-sm font-medium transition-all ${newPayment.duration === d ? 'bg-purple-500/20 border-purple-500 text-purple-400' : 'bg-gray-700/50 border-gray-600 text-gray-300 hover:border-gray-500'}`}>{d}min</button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Amount and Sessions */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-400 text-sm mb-2">{newPayment.type === 'Single' ? 'Price Per Session' : 'Total Amount'} ({currency}) *</label>
+                  <input type="number" value={newPayment.amount} onChange={(e) => setNewPayment({...newPayment, amount: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:outline-none" placeholder="0.00" />
+                </div>
+                <div>
+                  <label className="block text-gray-400 text-sm mb-2">Sessions *</label>
+                  <input type="number" value={newPayment.sessions} onChange={(e) => setNewPayment({...newPayment, sessions: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:outline-none" placeholder="0" />
+                </div>
+              </div>
+              
+              {/* Date */}
+              <div>
+                <label className="block text-gray-400 text-sm mb-2">Payment Date</label>
+                <input type="date" value={newPayment.date} onChange={(e) => setNewPayment({...newPayment, date: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:outline-none appearance-none" style={{minHeight: '50px'}} />
+              </div>
+              
+              {/* Price Summary */}
+              {newPayment.amount && newPayment.sessions && (
+                <div className="bg-gray-700/50 rounded-xl p-4">
+                  {newPayment.type === 'Single' ? (
+                    <>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-gray-400 text-sm">Total ({newPayment.sessions} × {currency}{parseFloat(newPayment.amount).toFixed(2)}):</span>
+                        <span className="text-xl font-bold text-cyan-400">{currency}{(parseFloat(newPayment.amount) * parseInt(newPayment.sessions)).toFixed(2)}</span>
+                      </div>
+                      {newPayment.duration && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-400 text-sm">Per hour:</span>
+                          <span className="text-lg font-semibold text-emerald-400">{currency}{(parseFloat(newPayment.amount) * (60/newPayment.duration)).toFixed(2)}</span>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-gray-400 text-sm">Per session:</span>
+                        <span className="text-xl font-bold text-yellow-400">{currency}{(parseFloat(newPayment.amount)/parseInt(newPayment.sessions)).toFixed(2)}</span>
+                      </div>
+                      {newPayment.duration && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-400 text-sm">Per hour:</span>
+                          <span className="text-lg font-semibold text-emerald-400">{currency}{((parseFloat(newPayment.amount)/parseInt(newPayment.sessions)) * (60/newPayment.duration)).toFixed(2)}</span>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+              
+              {/* Buttons */}
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setShowPaymentModal(false)} className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-medium">Cancel</button>
+                <button onClick={handleAddPayment} disabled={!newPayment.client_id || !newPayment.amount || !newPayment.sessions} className="flex-1 py-3 bg-cyan-500 hover:bg-cyan-400 disabled:bg-gray-600 text-gray-900 rounded-xl font-medium">Add Payment</button>
+              </div>
+            </div>
+          </Modal>}
+
+          {showTargetsModal && <Modal title="Edit Targets" onClose={() => setShowTargetsModal(false)}>
+            <div className="space-y-4">
+              <div><label className="block text-gray-400 text-sm mb-2">Monthly Revenue Goal ({currency})</label><input type="number" value={editTargets.revenueGoal} onChange={(e) => setEditTargets({...editTargets, revenueGoal: parseInt(e.target.value)||0})} className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:outline-none" /></div>
+              <div><label className="block text-gray-400 text-sm mb-2">Active Clients Goal</label><input type="number" value={editTargets.clientsGoal} onChange={(e) => setEditTargets({...editTargets, clientsGoal: parseInt(e.target.value)||0})} className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:outline-none" /></div>
+              <div className="flex gap-3 pt-4"><button onClick={() => setShowTargetsModal(false)} className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-medium">Cancel</button><button onClick={handleUpdateTargets} className="flex-1 py-3 bg-cyan-500 hover:bg-cyan-400 text-gray-900 rounded-xl font-medium">Save</button></div>
+            </div>
+          </Modal>}
+
+          {showChallengeModal && <Modal title="Edit Monthly Challenge" onClose={() => setShowChallengeModal(false)}>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-400 text-sm mb-2">Challenge Title</label>
+                <input type="text" value={newChallenge.title} onChange={(e) => setNewChallenge({...newChallenge, title: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:outline-none" placeholder="e.g., Complete 50 Sessions" />
+              </div>
+              <div>
+                <label className="block text-gray-400 text-sm mb-2">Challenge Type</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {['sessions', 'revenue', 'clients'].map(t => (
+                    <button key={t} onClick={() => setNewChallenge({...newChallenge, type: t})} className={`p-3 rounded-xl border text-sm font-medium capitalize ${newChallenge.type === t ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'bg-gray-700/50 border-gray-600 text-gray-300'}`}>{t}</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-gray-400 text-sm mb-2">Target {newChallenge.type === 'revenue' ? `(${currency})` : ''}</label>
+                <input type="number" value={newChallenge.target} onChange={(e) => setNewChallenge({...newChallenge, target: parseInt(e.target.value)||0})} className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:outline-none" />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button onClick={() => setShowChallengeModal(false)} className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-medium">Cancel</button>
+                <button onClick={saveChallenge} className="flex-1 py-3 bg-cyan-500 hover:bg-cyan-400 text-gray-900 rounded-xl font-medium">Save Challenge</button>
+              </div>
+            </div>
+          </Modal>}
+
+          {/* Session Date Modal */}
+          {showSessionDateModal && pendingSession && <Modal title="Session Date" onClose={() => { setShowSessionDateModal(false); setPendingSession(null); }}>
+            <div className="space-y-4">
+              <p className="text-gray-400 text-sm">When did this session happen?</p>
+              <div>
+                <label className="block text-gray-400 text-sm mb-2">Date</label>
+                <input 
+                  type="date" 
+                  value={sessionDate} 
+                  onChange={(e) => setSessionDate(e.target.value)} 
+                  className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:outline-none" 
+                  style={{minHeight: '50px'}}
+                  max={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <button onClick={() => setSessionDate(new Date().toISOString().split('T')[0])} className={`px-3 py-2 rounded-lg text-sm ${sessionDate === new Date().toISOString().split('T')[0] ? 'bg-cyan-500/20 border border-cyan-500 text-cyan-400' : 'bg-gray-700 text-gray-300'}`}>Today</button>
+                <button onClick={() => { const d = new Date(); d.setDate(d.getDate() - 1); setSessionDate(d.toISOString().split('T')[0]); }} className={`px-3 py-2 rounded-lg text-sm ${sessionDate === (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().split('T')[0]; })() ? 'bg-cyan-500/20 border border-cyan-500 text-cyan-400' : 'bg-gray-700 text-gray-300'}`}>Yesterday</button>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => { setShowSessionDateModal(false); setPendingSession(null); }} className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-medium">Cancel</button>
+                <button onClick={confirmAddSession} className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-400 text-gray-900 rounded-xl font-medium">✓ Complete Session</button>
+              </div>
+            </div>
+          </Modal>}
+
+          {/* Add Expense Modal */}
+          {showExpenseModal && <Modal title="Add Expense" onClose={() => setShowExpenseModal(false)}>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-400 text-sm mb-2">Category *</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {expenseCategories.map(cat => (
+                    <button key={cat} onClick={() => setNewExpense({...newExpense, category: cat, amount: '', share_percentage: '', share_mode: 'monthly', share_payment_id: ''})} className={`p-3 rounded-xl border text-sm font-medium transition-all ${newExpense.category === cat ? 'bg-red-500/20 border-red-500 text-red-400' : 'bg-gray-700/50 border-gray-600 text-gray-300 hover:border-gray-500'}`}>{cat}</button>
+                  ))}
+                </div>
+              </div>
+              
+              {newExpense.category === 'Share' ? (
+                <>
+                  {/* Share Mode Toggle */}
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-2">Calculate Share From</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button onClick={() => setNewExpense({...newExpense, share_mode: 'monthly', share_payment_id: ''})} className={`p-3 rounded-xl border text-sm font-medium transition-all ${newExpense.share_mode === 'monthly' ? 'bg-red-500/20 border-red-500 text-red-400' : 'bg-gray-700/50 border-gray-600 text-gray-300'}`}>📅 Monthly Total</button>
+                      <button onClick={() => setNewExpense({...newExpense, share_mode: 'payment'})} className={`p-3 rounded-xl border text-sm font-medium transition-all ${newExpense.share_mode === 'payment' ? 'bg-red-500/20 border-red-500 text-red-400' : 'bg-gray-700/50 border-gray-600 text-gray-300'}`}>💳 Specific Payment</button>
+                    </div>
+                  </div>
+
+                  {/* Share Percentage */}
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-2">Share Percentage *</label>
+                    <div className="flex items-center gap-2">
+                      <input type="number" value={newExpense.share_percentage} onChange={(e) => setNewExpense({...newExpense, share_percentage: e.target.value})} className="flex-1 bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-red-500 focus:outline-none" placeholder="25" min="0" max="100" />
+                      <span className="text-white text-xl">%</span>
+                    </div>
+                  </div>
+
+                  {/* Monthly Mode: Date Picker */}
+                  {newExpense.share_mode === 'monthly' && (
+                    <div>
+                      <label className="block text-gray-400 text-sm mb-2">Month</label>
+                      <input type="date" value={newExpense.date} onChange={(e) => setNewExpense({...newExpense, date: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-red-500 focus:outline-none" style={{minHeight: '50px'}} />
+                    </div>
+                  )}
+
+                  {/* Payment Mode: Payment Selector */}
+                  {newExpense.share_mode === 'payment' && (
+                    <div>
+                      <label className="block text-gray-400 text-sm mb-2">Select Payment *</label>
+                      <select 
+                        value={newExpense.share_payment_id} 
+                        onChange={(e) => {
+                          const payment = payments.find(p => p.id === e.target.value);
+                          setNewExpense({...newExpense, share_payment_id: e.target.value, date: payment?.date || newExpense.date});
+                        }}
+                        className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-red-500 focus:outline-none"
+                      >
+                        <option value="">Select a payment...</option>
+                        {payments.slice(0, 20).map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.clients?.name} - {currency}{p.amount} ({p.type}, {new Date(p.date).toLocaleDateString()})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Calculation Preview */}
+                  {newExpense.share_percentage && (() => {
+                    let baseAmount = 0;
+                    let label = '';
+                    
+                    if (newExpense.share_mode === 'monthly') {
+                      const expenseDate = new Date(newExpense.date);
+                      baseAmount = payments.filter(p => {
+                        const pDate = new Date(p.date);
+                        return pDate.getMonth() === expenseDate.getMonth() && pDate.getFullYear() === expenseDate.getFullYear();
+                      }).reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+                      label = expenseDate.toLocaleString('en', { month: 'long', year: 'numeric' }) + ' revenue';
+                    } else if (newExpense.share_payment_id) {
+                      const payment = payments.find(p => p.id === newExpense.share_payment_id);
+                      baseAmount = parseFloat(payment?.amount || 0);
+                      label = `${payment?.clients?.name} - ${payment?.type}`;
+                    }
+                    
+                    if (baseAmount === 0 && newExpense.share_mode === 'payment' && !newExpense.share_payment_id) return null;
+                    
+                    const shareAmount = baseAmount * (parseFloat(newExpense.share_percentage) / 100);
+                    return (
+                      <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-gray-400 text-sm">{label}:</span>
+                          <span className="text-white font-medium">{currency}{baseAmount.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-400 text-sm">Share ({newExpense.share_percentage}%):</span>
+                          <span className="text-xl font-bold text-red-400">{currency}{shareAmount.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-2">Amount ({currency}) *</label>
+                    <input type="number" value={newExpense.amount} onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-red-500 focus:outline-none" placeholder="0.00" />
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-2">Date</label>
+                    <input type="date" value={newExpense.date} onChange={(e) => setNewExpense({...newExpense, date: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-red-500 focus:outline-none" style={{minHeight: '50px'}} />
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-2">Note <span className="text-gray-500">(optional)</span></label>
+                    <input type="text" value={newExpense.note} onChange={(e) => setNewExpense({...newExpense, note: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-red-500 focus:outline-none" placeholder="e.g., January rent" />
+                  </div>
+                </>
+              )}
+              
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setShowExpenseModal(false)} className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-medium">Cancel</button>
+                <button onClick={handleAddExpense} disabled={newExpense.category === 'Share' ? (!newExpense.share_percentage || (newExpense.share_mode === 'payment' && !newExpense.share_payment_id)) : !newExpense.amount} className="flex-1 py-3 bg-red-500 hover:bg-red-400 disabled:bg-gray-600 text-white rounded-xl font-medium">Add Expense</button>
+              </div>
+            </div>
+          </Modal>}
+
+          {/* Expense List Modal */}
+          {showExpenseListModal && <Modal title="All Expenses" onClose={() => { setShowExpenseListModal(false); setEditingExpense(null); }}>
+            <div className="space-y-4">
+              {editingExpense ? (
+                <>
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-2">Category</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {expenseCategories.map(cat => (
+                        <button key={cat} onClick={() => setEditingExpense({...editingExpense, category: cat})} className={`p-2 rounded-xl border text-sm font-medium ${editingExpense.category === cat ? 'bg-red-500/20 border-red-500 text-red-400' : 'bg-gray-700/50 border-gray-600 text-gray-300'}`}>{cat}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-2">Amount ({currency})</label>
+                    <input type="number" value={editingExpense.amount} onChange={(e) => setEditingExpense({...editingExpense, amount: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-red-500 focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-2">Date</label>
+                    <input type="date" value={editingExpense.date} onChange={(e) => setEditingExpense({...editingExpense, date: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-red-500 focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-2">Note</label>
+                    <input type="text" value={editingExpense.note || ''} onChange={(e) => setEditingExpense({...editingExpense, note: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-red-500 focus:outline-none" />
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <button onClick={() => setEditingExpense(null)} className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-medium">Cancel</button>
+                    <button onClick={handleUpdateExpense} className="flex-1 py-3 bg-red-500 hover:bg-red-400 text-white rounded-xl font-medium">Save</button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="max-h-80 overflow-y-auto space-y-2">
+                    {expenses.length === 0 ? (
+                      <p className="text-gray-500 text-center py-8">No expenses yet</p>
+                    ) : (
+                      expenses.map(e => (
+                        <div key={e.id} className="flex items-center justify-between bg-gray-700/50 rounded-xl px-4 py-3">
+                          <div>
+                            <div className="text-white font-medium">{currency}{parseFloat(e.amount).toLocaleString()}</div>
+                            <div className="text-xs text-gray-400">{e.category} • {new Date(e.date).toLocaleDateString()}</div>
+                            {e.note && <div className="text-xs text-gray-500">{e.note}</div>}
+                          </div>
+                          <div className="flex gap-2">
+                            <button onClick={() => setEditingExpense(e)} className="px-3 py-1 text-sm bg-gray-600 hover:bg-gray-500 rounded-lg text-gray-300">Edit</button>
+                            <button onClick={() => handleDeleteExpense(e.id)} className="px-3 py-1 text-sm bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 rounded-lg text-red-400">Delete</button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <button onClick={() => setShowExpenseListModal(false)} className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-medium">Close</button>
+                    <button onClick={() => { setShowExpenseListModal(false); setShowExpenseModal(true); }} className="flex-1 py-3 bg-red-500 hover:bg-red-400 text-white rounded-xl font-medium">+ Add Expense</button>
+                  </div>
+                </>
+              )}
+            </div>
+          </Modal>}
+
+          {showSettingsModal && <Modal title="Settings" onClose={() => setShowSettingsModal(false)}>
+            <div className="space-y-6">
+              {/* Business Name */}
+              <div>
+                <label className="block text-gray-400 text-sm mb-3">Your Name / Business Name</label>
+                <input 
+                  type="text" 
+                  value={businessName} 
+                  onChange={(e) => saveBusinessName(e.target.value)} 
+                  placeholder="e.g., John's Fitness, Coach Maria"
+                  className="w-full bg-gray-700/50 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:outline-none"
+                />
+                <p className="text-gray-500 text-xs mt-2">Displayed in the header instead of "PT LOG"</p>
+              </div>
+
+              {/* Dark Mode Toggle */}
+              <div>
+                <label className="block text-gray-400 text-sm mb-3">Appearance</label>
+                <div className="flex items-center justify-between bg-gray-700/50 rounded-xl px-4 py-3">
+                  <span className="text-white">Dark Mode</span>
+                  <button onClick={toggleDarkMode} className={`relative w-12 h-6 rounded-full transition-colors ${darkMode ? 'bg-cyan-500' : 'bg-gray-600'}`}>
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${darkMode ? 'left-7' : 'left-1'}`} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Weekly Capacity */}
+              <div>
+                <label className="block text-gray-400 text-sm mb-3">Weekly Session Capacity</label>
+                <div className="flex items-center gap-4 bg-gray-700/50 rounded-xl px-4 py-3">
+                  <input type="range" min="5" max="60" value={weeklyCapacity} onChange={(e) => saveWeeklyCapacity(parseInt(e.target.value))} className="flex-1 accent-cyan-500" />
+                  <span className="text-white font-semibold w-16 text-right">{weeklyCapacity}/week</span>
+                </div>
+                <p className="text-gray-500 text-xs mt-2">Used to calculate your capacity utilization</p>
+              </div>
+
+              {/* Revenue Share */}
+              <div>
+                <label className="block text-gray-400 text-sm mb-3">Facility Revenue Share</label>
+                <div className="flex items-center gap-4 bg-gray-700/50 rounded-xl px-4 py-3">
+                  <input type="range" min="0" max="50" value={revenueSharePercent} onChange={(e) => saveRevenueShare(parseInt(e.target.value))} className="flex-1 accent-red-500" />
+                  <span className="text-white font-semibold w-16 text-right">{revenueSharePercent}%</span>
+                </div>
+                <p className="text-gray-500 text-xs mt-2">Percentage of revenue paid to gym/facility (auto-calculated in expenses)</p>
+              </div>
+
+              {/* Currency Selection */}
+              <div>
+                <label className="block text-gray-400 text-sm mb-3">Currency</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {currencies.map(c => (
+                    <button key={c} onClick={() => saveCurrency(c)} className={`p-3 rounded-xl border text-lg font-medium transition-all ${currency === c ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'bg-gray-700/50 border-gray-600 text-gray-300 hover:border-gray-500'}`}>{c}</button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Client Management */}
+              <div>
+                <label className="block text-gray-400 text-sm mb-3">Manage Clients</label>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {clients.filter(c => c.status !== 'Deleted').length === 0 ? (
+                    <p className="text-gray-500 text-center py-4">No clients yet</p>
+                  ) : (
+                    clients.filter(c => c.status !== 'Deleted').map(c => (
+                      <div key={c.id} className="flex items-center justify-between bg-gray-700/50 rounded-xl px-4 py-3">
+                        <span className="text-white">{c.name}</span>
+                        <div className="flex gap-2">
+                          <button onClick={() => handleEditClient(c)} className="px-3 py-1 text-sm bg-gray-600 hover:bg-gray-500 rounded-lg text-gray-300">Edit</button>
+                          <button onClick={() => handleDeleteClient(c.id)} className="px-3 py-1 text-sm bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 rounded-lg text-red-400">Delete</button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Reset Onboarding */}
+              <div>
+                <button onClick={() => { localStorage.removeItem('ptlog_onboarded'); setShowOnboarding(true); setShowSettingsModal(false); }} className="w-full py-2 bg-gray-700/50 hover:bg-gray-700 rounded-xl text-gray-400 text-sm">Show Tips Again</button>
+              </div>
+              
+              <div className="pt-2 space-y-2">
+                <button onClick={() => { setShowSettingsModal(false); setShowExpenseModal(true); }} className="w-full py-3 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 text-red-400 rounded-xl font-medium sm:hidden">+ Add Expense</button>
+                <button onClick={() => setShowSettingsModal(false)} className="w-full py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-medium">Close</button>
+                <button onClick={() => { setShowSettingsModal(false); handleLogout(); }} className="w-full py-3 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 text-red-400 rounded-xl font-medium sm:hidden">Logout</button>
+              </div>
+            </div>
+          </Modal>}
+
+          {showEditClientModal && editingClient && <Modal title="Edit Client" onClose={() => { setShowEditClientModal(false); setEditingClient(null); }}>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-400 text-sm mb-2">Client Name</label>
+                <input type="text" value={editingClient.name} onChange={(e) => setEditingClient({...editingClient, name: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:outline-none" autoFocus />
+              </div>
+              <div>
+                <label className="block text-gray-400 text-sm mb-2">Notes <span className="text-gray-500">(injuries, goals, preferences)</span></label>
+                <textarea value={editingClient.notes || ''} onChange={(e) => setEditingClient({...editingClient, notes: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:outline-none h-24 resize-none" placeholder="Add notes about this client..." />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => { setShowEditClientModal(false); setEditingClient(null); }} className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-medium">Cancel</button>
+                <button onClick={handleUpdateClient} disabled={!editingClient.name?.trim()} className="flex-1 py-3 bg-cyan-500 hover:bg-cyan-400 disabled:bg-gray-600 text-gray-900 rounded-xl font-medium">Save</button>
+              </div>
+            </div>
+          </Modal>}
+
+          {showClientDetailModal && selectedClient && <Modal title={selectedClient.name} onClose={() => { setShowClientDetailModal(false); setSelectedClient(null); }}>
+            <div className="space-y-4">
+              {/* Client Stats */}
+              {(() => {
+                const clientPayments = payments.filter(p => p.client_id === selectedClient.id);
+                const totalRevenue = clientPayments.reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+                const totalSessions = clientPayments.reduce((s, p) => s + (p.sessions || 0), 0);
+                const completedSessions = clientPayments.reduce((s, p) => s + (p.sessions_completed || 0), 0);
+                return (
+                  <>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="bg-gray-700/50 rounded-xl p-3 text-center">
+                        <div className="text-lg font-bold text-emerald-400">{currency}{totalRevenue.toLocaleString()}</div>
+                        <div className="text-xs text-gray-400">Total Revenue</div>
+                      </div>
+                      <div className="bg-gray-700/50 rounded-xl p-3 text-center">
+                        <div className="text-lg font-bold text-cyan-400">{completedSessions}</div>
+                        <div className="text-xs text-gray-400">Sessions Done</div>
+                      </div>
+                      <div className="bg-gray-700/50 rounded-xl p-3 text-center">
+                        <div className="text-lg font-bold text-purple-400">{totalSessions - completedSessions}</div>
+                        <div className="text-xs text-gray-400">Remaining</div>
+                      </div>
+                    </div>
+                    
+                    {/* Notes */}
+                    {selectedClient.notes && (
+                      <div className="bg-gray-700/30 rounded-xl p-4">
+                        <div className="text-xs text-gray-400 mb-2">📝 Notes</div>
+                        <div className="text-gray-300 text-sm whitespace-pre-wrap">{selectedClient.notes}</div>
+                      </div>
+                    )}
+                    
+                    {/* Payment History */}
+                    <div>
+                      <div className="text-sm text-gray-400 mb-3">💳 Payment History</div>
+                      {clientPayments.length === 0 ? (
+                        <p className="text-gray-500 text-center py-4">No payments yet</p>
+                      ) : (
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {clientPayments.sort((a, b) => new Date(b.date) - new Date(a.date)).map(p => (
+                            <div key={p.id} className="flex items-center justify-between bg-gray-700/50 rounded-lg px-3 py-2">
+                              <div>
+                                <div className="text-white text-sm font-medium">{currency}{p.amount}</div>
+                                <div className="text-xs text-gray-400">{p.type} • {p.sessions} sessions{p.duration ? ` • ${p.duration}min` : ''}</div>
+                              </div>
+                              <div className="text-right">
+                                <div className={`text-sm font-medium ${p.sessions_completed >= p.sessions ? 'text-emerald-400' : 'text-orange-400'}`}>
+                                  {p.sessions_completed}/{p.sessions}
+                                </div>
+                                <div className="text-xs text-gray-500">{new Date(p.date).toLocaleDateString()}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
+              
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => { setShowClientDetailModal(false); handleEditClient(selectedClient); }} className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-medium">Edit Client</button>
+                <button onClick={() => { setShowClientDetailModal(false); setSelectedClient(null); }} className="flex-1 py-3 bg-cyan-500 hover:bg-cyan-400 text-gray-900 rounded-xl font-medium">Close</button>
+              </div>
+            </div>
+          </Modal>}
+
+          <div className="relative">
+            <header className={`border-b ${darkMode ? 'border-gray-800 bg-gray-900/80' : 'border-gray-200 bg-white/80'} backdrop-blur-xl sticky top-0 z-10`}>
+              <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
+                <div className="flex items-center justify-between">
+                  <h1 className="text-lg sm:text-2xl font-bold text-cyan-400">{businessName || 'PT LOG'}</h1>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setShowNewClientModal(true)} className={`px-3 py-2 ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-900'} rounded-xl text-sm font-medium`}>+ Client</button>
+                    <button onClick={() => setShowPaymentModal(true)} className="px-3 py-2 bg-cyan-500 hover:bg-cyan-400 text-gray-900 rounded-xl text-sm font-medium">+ Payment</button>
+                    <button onClick={() => setShowExpenseModal(true)} className="px-3 py-2 bg-red-500/80 hover:bg-red-500 text-white rounded-xl text-sm font-medium hidden sm:block">+ Expense</button>
+                    <button onClick={() => setShowSettingsModal(true)} className={`px-3 py-2 ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-900'} rounded-xl text-sm font-medium`}>☰</button>
+                  </div>
+                </div>
+              </div>
+            </header>
+
+            {/* Tab Navigation */}
+            <div className={`sticky top-[57px] sm:top-[65px] z-10 ${darkMode ? 'bg-gray-900/95' : 'bg-gray-50/95'} backdrop-blur-xl border-b ${darkMode ? 'border-gray-800' : 'border-gray-200'}`}>
+              <div className="max-w-7xl mx-auto px-2 sm:px-6">
+                <div className="flex gap-1 overflow-x-auto py-2 scrollbar-hide">
+                  {[
+                    { id: 'dashboard', label: '📊 Dashboard', short: '📊' },
+                    { id: 'clients', label: '👥 Clients', short: '👥' },
+                    { id: 'finances', label: '💰 Finances', short: '💰' },
+                    { id: 'analytics', label: '📈 Analytics', short: '📈' },
+                    { id: 'achievements', label: '🏆 Achievements', short: '🏆' }
+                  ].map(tab => (
+                    <button 
+                      key={tab.id} 
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`px-3 sm:px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${activeTab === tab.id ? 'bg-cyan-500 text-gray-900' : darkMode ? 'bg-gray-800 text-gray-400 hover:text-white' : 'bg-gray-200 text-gray-600 hover:text-gray-900'}`}
+                    >
+                      <span className="sm:hidden">{tab.short}</span>
+                      <span className="hidden sm:inline">{tab.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+              {/* Always show metric cards */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <MetricCard icon="💰" value={`${currency}${thisMonthRevenue.toLocaleString()}`} label="This Month" trend={revenueTrend} color="bg-emerald-500/20" />
+                <MetricCard icon="📈" value={`${currency}${totalRevenue.toLocaleString()}`} label="Total Revenue" color="bg-cyan-500/20" />
+                <MetricCard icon="👥" value={activeClients} label="Active Clients" color="bg-purple-500/20" />
+                <MetricCard icon="⚠️" value={renewalsSoon.length} label="Renewals Soon" color="bg-orange-500/20" />
+              </div>
+
+              {/* DASHBOARD TAB */}
+              {activeTab === 'dashboard' && (
+                <>
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+                    <div className="lg:col-span-2 bg-gray-800/50 backdrop-blur border border-gray-700/50 rounded-2xl p-6">
+                      <h3 className="text-lg font-semibold mb-6">📊 Monthly Income</h3>
+                      {payments.length === 0 ? <p className="text-gray-500 text-center py-12">Add payments to see chart</p> : <MonthlyIncomeChart payments={payments} currency={currency} />}
+                    </div>
+                    <div className="bg-gray-800/50 backdrop-blur border border-gray-700/50 rounded-2xl p-6">
+                      <div className="flex justify-between mb-6"><h3 className="text-lg font-semibold">🎯 Targets</h3><button onClick={() => { setEditTargets({ revenueGoal: revenueTarget?.goal||5000, clientsGoal: clientsTarget?.goal||15 }); setShowTargetsModal(true); }} className="text-gray-400 hover:text-white text-sm">Edit</button></div>
+                      <ProgressBar current={thisMonthRevenue} goal={revenueTarget?.goal||5000} label={`Revenue (${currency})`} color="from-emerald-500 to-emerald-400" />
+                      <ProgressBar current={activeClients} goal={clientsTarget?.goal||15} label="Clients" color="from-purple-500 to-purple-400" />
+                      {renewalsSoon.length > 0 && <div className="mt-6 pt-4 border-t border-gray-700"><h4 className="text-sm text-gray-400 mb-3">⚠️ Renewals Soon</h4><div className="space-y-2">{renewalsSoon.slice(0,3).map(p => <div key={p.id} className="flex justify-between text-sm bg-orange-500/10 border border-orange-500/30 rounded-lg px-3 py-2"><span className="text-gray-300">{p.clients?.name}</span><span className="text-orange-400 font-medium">{p.sessions-p.sessions_completed} left</span></div>)}</div></div>}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* CLIENTS TAB */}
+              {activeTab === 'clients' && (
+                <>
+                  <div className="bg-gray-800/50 backdrop-blur border border-gray-700/50 rounded-2xl p-6 mb-10">
+                    <h3 className="text-lg font-semibold mb-6">💎 Revenue Per Client</h3>
+                    {clients.filter(c => c.status !== 'Deleted').length === 0 ? <p className="text-gray-500 text-center py-8">No clients yet</p> : <div className="space-y-3">{clients.filter(c => c.status !== 'Deleted').map(c => ({...c, revenue: payments.filter(p => p.client_id === c.id).reduce((s,p) => s+parseFloat(p.amount||0),0)})).sort((a,b) => b.revenue-a.revenue).map((c,i) => {const max = Math.max(...clients.filter(c => c.status !== 'Deleted').map(cl => payments.filter(p => p.client_id===cl.id).reduce((s,p) => s+parseFloat(p.amount||0),0)),1); const colors = ['from-cyan-500 to-cyan-400','from-purple-500 to-purple-400','from-emerald-500 to-emerald-400','from-orange-500 to-orange-400']; return <div key={c.id} onClick={() => handleViewClient(c)} className="cursor-pointer hover:bg-gray-700/30 rounded-xl p-2 -mx-2 transition-colors"><div className="flex justify-between mb-1"><div className="flex items-center gap-2"><div className={`w-8 h-8 rounded-full bg-gradient-to-br ${colors[i%4]} flex items-center justify-center text-white text-xs font-semibold`}>{c.name?.split(' ').map(n=>n[0]).join('')}</div><span className="text-gray-300">{c.name}</span>{c.notes && <span className="text-gray-500 text-xs">📝</span>}</div><span className="text-white font-semibold">{currency}{c.revenue.toLocaleString()}</span></div><div className="h-2 bg-gray-700 rounded-full overflow-hidden"><div className={`h-full rounded-full bg-gradient-to-r ${colors[i%4]}`} style={{width:`${(c.revenue/max)*100}%`}}/></div></div>})}</div>}
+                    <p className="text-gray-500 text-xs text-center mt-4">Tap a client to view details</p>
+                  </div>
+                </>
+              )}
+
+              {/* Keep original Streaks & Milestones for removal */}
+              {/* ACHIEVEMENTS TAB */}
+              {activeTab === 'achievements' && (() => {
+                const { milestones, streak, totalRev, totalSessions, totalClients } = calculateStreaksAndMilestones();
+                return (
+                  <div className="bg-gray-800/50 backdrop-blur border border-amber-500/30 rounded-2xl p-6 mb-10">
+                    <h3 className="text-lg font-semibold mb-6">🏆 Achievements</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                      <div className="bg-gray-700/30 rounded-xl p-4 text-center">
+                        <div className="text-3xl mb-2">🔥</div>
+                        <div className="text-2xl font-bold text-orange-400">{streak}</div>
+                        <div className="text-xs text-gray-400">Month Streak</div>
+                      </div>
+                      <div className="bg-gray-700/30 rounded-xl p-4 text-center">
+                        <div className="text-3xl mb-2">💰</div>
+                        <div className="text-xl font-bold text-emerald-400">{currency}{totalRev >= 1000 ? (totalRev/1000).toFixed(1)+'k' : totalRev.toFixed(0)}</div>
+                        <div className="text-xs text-gray-400">Total Earned</div>
+                      </div>
+                      <div className="bg-gray-700/30 rounded-xl p-4 text-center">
+                        <div className="text-3xl mb-2">🏋️</div>
+                        <div className="text-2xl font-bold text-cyan-400">{totalSessions}</div>
+                        <div className="text-xs text-gray-400">Sessions Done</div>
+                      </div>
+                      <div className="bg-gray-700/30 rounded-xl p-4 text-center">
+                        <div className="text-3xl mb-2">👥</div>
+                        <div className="text-2xl font-bold text-purple-400">{totalClients}</div>
+                        <div className="text-xs text-gray-400">Total Clients</div>
+                      </div>
+                    </div>
+                    {milestones.length > 0 && (
+                      <div>
+                        <div className="text-sm text-gray-400 mb-3">🎖️ Milestones Reached</div>
+                        <div className="flex flex-wrap gap-2">
+                          {milestones.map((m, i) => (
+                            <div key={i} className="px-3 py-2 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-400 text-sm font-medium">
+                              {m.icon} {m.type === 'revenue' ? `${currency}${m.value >= 1000 ? (m.value/1000)+'k' : m.value}` : m.value}+ {m.type}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {streak >= 2 && (
+                      <div className="mt-4 p-3 bg-orange-500/10 border border-orange-500/30 rounded-xl text-center">
+                        <span className="text-orange-400 font-medium">🔥 {streak} months in a row hitting your revenue goal!</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* ANALYTICS TAB */}
+              {activeTab === 'analytics' && (
+                <>
+                  <div className="bg-gray-800/50 backdrop-blur border border-emerald-500/30 rounded-2xl p-6 mb-10">
+                    <h3 className="text-lg font-semibold mb-6">📅 Yearly Pattern</h3>
+                    <YearlyIncomePattern payments={payments} currency={currency} />
+                  </div>
+                </>
+              )}
+
+              {/* CLIENTS TAB - Session Tracker */}
+              {activeTab === 'clients' && (
+                <><div className="bg-gray-800/50 backdrop-blur border border-cyan-500/30 rounded-2xl p-6 mb-10">
+                <h3 className="text-lg font-semibold mb-2">✅ Session Tracker</h3>
+                <p className="text-gray-500 text-xs mb-6">Swipe right to mark complete →</p>
+                {payments.length === 0 ? <p className="text-gray-500 text-center py-8">No payments yet</p> : <div>
+                  <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="bg-gray-700/30 rounded-xl p-4 text-center"><div className="text-2xl font-bold text-emerald-400">{payments.reduce((s,p)=>s+p.sessions_completed,0)}</div><div className="text-gray-400 text-sm">Done</div></div>
+                    <div className="bg-gray-700/30 rounded-xl p-4 text-center"><div className="text-2xl font-bold text-orange-400">{payments.reduce((s,p)=>s+(p.sessions-p.sessions_completed),0)}</div><div className="text-gray-400 text-sm">Left</div></div>
+                    <div className="bg-gray-700/30 rounded-xl p-4 text-center"><div className="text-2xl font-bold text-cyan-400">{payments.reduce((s,p)=>s+p.sessions,0)}</div><div className="text-gray-400 text-sm">Total</div></div>
+                  </div>
+                  <div className="space-y-4">{payments.filter(p => p.sessions > 0 && p.sessions_completed < p.sessions).map(p => {
+                    const isMonthly = p.type === 'Monthly';
+                    const paymentMonth = new Date(p.date).toLocaleString('en', { month: 'short' });
+                    return (
+                    <div 
+                      key={p.id} 
+                      className={`bg-gray-800/30 rounded-xl border ${isMonthly ? 'border-violet-500/30' : 'border-gray-700/30'} p-4 touch-pan-y`}
+                      onTouchStart={(e) => handleSwipeStart(e, p.id)}
+                      onTouchMove={handleSwipeMove}
+                      onTouchEnd={handleSwipeEnd}
+                    >
+                    <div className="flex justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${isMonthly ? 'from-violet-500 to-purple-600' : 'from-cyan-500 to-blue-600'} flex items-center justify-center text-white font-semibold text-sm flex-shrink-0`}>{p.clients?.name?.split(' ').map(n=>n[0]).join('')||'?'}</div>
+                        <div>
+                          <div className="text-white font-medium">{p.clients?.name||'?'}</div>
+                          <div className="text-xs text-gray-400">
+                            {isMonthly ? <span className="text-violet-400">{paymentMonth} Membership</span> : p.type} • {currency}{p.amount}{p.duration ? ` • ${p.duration}min` : ''}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <div className="text-white font-semibold">{p.sessions_completed}/{p.sessions}</div>
+                        <div className={`text-xs ${p.sessions-p.sessions_completed<=2 && p.sessions-p.sessions_completed>0 ? 'text-orange-400':'text-gray-400'}`}>
+                          {isMonthly ? `${p.sessions} included` : `${p.sessions-p.sessions_completed} left`}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={()=>updateSession(p.id,p.sessions_completed,p.sessions,'deduct')} disabled={p.sessions_completed===0} className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg font-bold flex-shrink-0 ${p.sessions_completed>0 ? 'bg-red-500/20 border border-red-500/50 text-red-400 hover:bg-red-500/30':'bg-gray-700/30 border border-gray-600/30 text-gray-600 cursor-not-allowed'}`}>−</button>
+                      <div className="flex-1 flex items-center justify-end gap-1 overflow-hidden">
+                        <div className="flex gap-1 flex-row-reverse overflow-x-auto scrollbar-hide py-1" style={{direction: 'rtl'}}>
+                          {Array.from({length:p.sessions},(_,i)=> p.sessions - 1 - i).map(i => (
+                            <div key={i} style={{direction: 'ltr'}} className={`w-7 h-7 rounded-md flex items-center justify-center text-xs font-medium flex-shrink-0 ${i<p.sessions_completed ? `${isMonthly ? 'bg-violet-500/20 border-violet-500/50 text-violet-400' : 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'} border`:'bg-gray-700/30 border border-gray-600/30 text-gray-500'}`}>{i<p.sessions_completed?'✓':i+1}</div>
+                          ))}
+                        </div>
+                      </div>
+                      <button onClick={()=>updateSession(p.id,p.sessions_completed,p.sessions,'add')} disabled={p.sessions_completed>=p.sessions} className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg font-bold flex-shrink-0 ${p.sessions_completed<p.sessions ? `${isMonthly ? 'bg-violet-500/20 border-violet-500/50 text-violet-400 hover:bg-violet-500/30' : 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/30'} border`:'bg-gray-700/30 border border-gray-600/30 text-gray-600 cursor-not-allowed'}`}>+</button>
+                    </div>
+                  </div>)})}</div>
+                </div>}
+              </div>
+              </>
+              )}
+
+              {/* ANALYTICS TAB - Sessions Per Month */}
+              {activeTab === 'analytics' && (
+                <>
+              <div className="bg-gray-800/50 backdrop-blur border border-purple-500/30 rounded-2xl p-6 mb-10">
+                <h3 className="text-lg font-semibold mb-6">🏋️ Sessions Per Month</h3>
+                <SessionsPerMonthChart payments={payments} sessionLogs={sessionLogs} />
+              </div>
+              </>
+              )}
+
+              {/* FINANCES TAB - Price Per Session */}
+              {activeTab === 'finances' && (
+              <div className="bg-gray-800/50 backdrop-blur border border-yellow-500/30 rounded-2xl p-6 mb-10">
+                <h3 className="text-lg font-semibold mb-6">💵 Price Per Session</h3>
+                {payments.length === 0 ? <p className="text-gray-500 text-center py-8">No data</p> : <div>
+                  {/* Summary Cards */}
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="bg-gradient-to-r from-yellow-500/10 to-amber-500/10 border border-yellow-500/30 rounded-xl p-4">
+                      <div className="text-gray-400 text-sm mb-1">Avg Per Session</div>
+                      <div className="text-2xl font-bold text-yellow-400">{currency}{(payments.reduce((s,p)=>s+parseFloat(p.amount||0),0)/payments.reduce((s,p)=>s+(p.sessions||0),0)||0).toFixed(2)}</div>
+                    </div>
+                    <div className="bg-gradient-to-r from-emerald-500/10 to-green-500/10 border border-emerald-500/30 rounded-xl p-4">
+                      <div className="text-gray-400 text-sm mb-1">Avg Per Hour</div>
+                      <div className="text-2xl font-bold text-emerald-400">{currency}{(payments.reduce((s,p) => {
+                        const pps = parseFloat(p.amount||0) / (p.sessions||1);
+                        const pph = pps * (60 / (p.duration || 60));
+                        return s + (pph * (p.sessions||0));
+                      }, 0) / payments.reduce((s,p)=>s+(p.sessions||0),0) || 0).toFixed(2)}</div>
+                    </div>
+                  </div>
+                  
+                  {/* By Duration Brackets */}
+                  {[30, 45, 60, 90].map(dur => {
+                    const durPayments = payments.filter(p => (p.duration || 60) === dur);
+                    if (durPayments.length === 0) return null;
+                    const totalAmount = durPayments.reduce((s,p) => s + parseFloat(p.amount||0), 0);
+                    const totalSessions = durPayments.reduce((s,p) => s + (p.sessions||0), 0);
+                    const avgPps = totalSessions > 0 ? totalAmount / totalSessions : 0;
+                    const avgPph = avgPps * (60 / dur);
+                    return (
+                      <div key={dur} className="mb-4 last:mb-0">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-purple-400">{dur} min sessions</span>
+                          <div className="flex gap-4 text-sm">
+                            <span className="text-gray-400">{currency}{avgPps.toFixed(2)}/sess</span>
+                            <span className="text-emerald-400 font-medium">{currency}{avgPph.toFixed(2)}/hr</span>
+                          </div>
+                        </div>
+                        <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full bg-gradient-to-r from-purple-500 to-purple-400" style={{width: `${Math.min((totalSessions / payments.reduce((s,p)=>s+(p.sessions||0),0)) * 100, 100)}%`}} />
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">{totalSessions} sessions • {currency}{totalAmount.toFixed(0)} total</div>
+                      </div>
+                    );
+                  })}
+                  
+                  {/* Per Client */}
+                  <div className="mt-6 pt-4 border-t border-gray-700">
+                    <h4 className="text-sm text-gray-400 mb-3">By Client</h4>
+                    <div className="space-y-3">{clients.filter(c => c.status !== 'Deleted').map(c => {const cp = payments.filter(p=>p.client_id===c.id); const ta = cp.reduce((s,p)=>s+parseFloat(p.amount||0),0); const ts = cp.reduce((s,p)=>s+(p.sessions||0),0); const avgDur = ts > 0 ? cp.reduce((s,p) => s + ((p.duration||60) * (p.sessions||0)), 0) / ts : 60; return {...c, pps: ts>0?ta/ts:0, pph: ts>0?(ta/ts)*(60/avgDur):0, ts, avgDur};}).filter(c=>c.ts>0).sort((a,b)=>b.pph-a.pph).map((c,i) => {const max = Math.max(...clients.filter(c => c.status !== 'Deleted').map(cl=>{const cp=payments.filter(p=>p.client_id===cl.id);const ta=cp.reduce((s,p)=>s+parseFloat(p.amount||0),0);const ts=cp.reduce((s,p)=>s+(p.sessions||0),0);const avgDur = ts > 0 ? cp.reduce((s,p) => s + ((p.duration||60) * (p.sessions||0)), 0) / ts : 60;return ts>0?(ta/ts)*(60/avgDur):0;}),1); const colors = ['from-yellow-500 to-amber-500','from-orange-500 to-red-500','from-cyan-500 to-blue-500','from-emerald-500 to-green-500']; return <div key={c.id}><div className="flex justify-between mb-1"><div className="flex items-center gap-2"><div className={`w-6 h-6 rounded-full bg-gradient-to-br ${colors[i%4]} flex items-center justify-center text-white text-xs font-semibold`}>{c.name?.split(' ').map(n=>n[0]).join('')}</div><span className="text-gray-300 text-sm">{c.name}</span><span className="text-gray-500 text-xs">({c.ts} × {Math.round(c.avgDur)}min)</span></div><div className="text-right"><span className="text-yellow-400 font-semibold text-sm">{currency}{c.pps.toFixed(2)}</span><span className="text-gray-500 mx-1">•</span><span className="text-emerald-400 text-sm">{currency}{c.pph.toFixed(2)}/hr</span></div></div><div className="h-2 bg-gray-700 rounded-full overflow-hidden"><div className={`h-full rounded-full bg-gradient-to-r ${colors[i%4]}`} style={{width:`${(c.pph/max)*100}%`}}/></div></div>})}</div>
+                  </div>
+                </div>}
+              </div>
+              )}
+
+              {/* Advanced Analytics Section - reorganized into tabs */}
+              {(() => {
+                const analytics = calculateAdvancedAnalytics();
+                return (
+                  <>
+                    {/* FINANCES TAB - Income by Type & Profit */}
+                    {activeTab === 'finances' && (
+                      <>
+                    {/* Income by Type */}
+                    <div className="bg-gray-800/50 backdrop-blur border border-pink-500/30 rounded-2xl p-6 mb-10">
+                      <h3 className="text-lg font-semibold mb-6">📊 Income by Type</h3>
+                      {analytics.totalIncome === 0 ? <p className="text-gray-500 text-center py-8">No data yet</p> : (
+                        <div>
+                          <div className="grid grid-cols-3 gap-4 mb-6">
+                            <div className="bg-gray-700/30 rounded-xl p-4 text-center">
+                              <div className="text-2xl font-bold text-cyan-400">{currency}{analytics.incomeByType.Single.toLocaleString()}</div>
+                              <div className="text-gray-400 text-sm">Single</div>
+                              <div className="text-xs text-gray-500">{((analytics.incomeByType.Single / analytics.totalIncome) * 100).toFixed(0)}%</div>
+                            </div>
+                            <div className="bg-gray-700/30 rounded-xl p-4 text-center">
+                              <div className="text-2xl font-bold text-emerald-400">{currency}{analytics.incomeByType.Pack.toLocaleString()}</div>
+                              <div className="text-gray-400 text-sm">Pack</div>
+                              <div className="text-xs text-gray-500">{((analytics.incomeByType.Pack / analytics.totalIncome) * 100).toFixed(0)}%</div>
+                            </div>
+                            <div className="bg-gray-700/30 rounded-xl p-4 text-center">
+                              <div className="text-2xl font-bold text-purple-400">{currency}{analytics.incomeByType.Monthly.toLocaleString()}</div>
+                              <div className="text-gray-400 text-sm">Monthly</div>
+                              <div className="text-xs text-gray-500">{((analytics.incomeByType.Monthly / analytics.totalIncome) * 100).toFixed(0)}%</div>
+                            </div>
+                          </div>
+                          <div className="h-4 bg-gray-700 rounded-full overflow-hidden flex">
+                            <div className="bg-cyan-500 h-full" style={{width: `${(analytics.incomeByType.Single / analytics.totalIncome) * 100}%`}} />
+                            <div className="bg-emerald-500 h-full" style={{width: `${(analytics.incomeByType.Pack / analytics.totalIncome) * 100}%`}} />
+                            <div className="bg-purple-500 h-full" style={{width: `${(analytics.incomeByType.Monthly / analytics.totalIncome) * 100}%`}} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Profit & Expenses Section */}
+                    <div className="bg-gray-800/50 backdrop-blur border border-red-500/30 rounded-2xl p-6 mb-10">
+                      <div className="flex justify-between items-start mb-6">
+                        <h3 className="text-lg font-semibold">💸 Profit & Expenses</h3>
+                        <div className="flex gap-2">
+                          <button onClick={() => setShowExpenseListModal(true)} className="text-gray-400 hover:text-white text-sm">View All</button>
+                          <button onClick={() => setShowExpenseModal(true)} className="text-red-400 hover:text-red-300 text-sm">+ Add</button>
+                        </div>
+                      </div>
+                      
+                      {/* Monthly Profit Overview */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 text-center">
+                          <div className="text-gray-400 text-xs mb-1">Revenue</div>
+                          <div className="text-xl font-bold text-emerald-400">{currency}{analytics.thisMonthThisYear?.toLocaleString() || 0}</div>
+                        </div>
+                        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-center">
+                          <div className="text-gray-400 text-xs mb-1">Expenses</div>
+                          <div className="text-xl font-bold text-red-400">{currency}{analytics.thisMonthExpenses.toLocaleString()}</div>
+                        </div>
+                        <div className={`${analytics.thisMonthProfit >= 0 ? 'bg-cyan-500/10 border-cyan-500/30' : 'bg-orange-500/10 border-orange-500/30'} border rounded-xl p-4 text-center`}>
+                          <div className="text-gray-400 text-xs mb-1">Profit</div>
+                          <div className={`text-xl font-bold ${analytics.thisMonthProfit >= 0 ? 'text-cyan-400' : 'text-orange-400'}`}>{currency}{analytics.thisMonthProfit.toLocaleString()}</div>
+                        </div>
+                        <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 text-center">
+                          <div className="text-gray-400 text-xs mb-1">Margin</div>
+                          <div className={`text-xl font-bold ${analytics.profitMargin >= 50 ? 'text-emerald-400' : analytics.profitMargin >= 25 ? 'text-yellow-400' : 'text-red-400'}`}>{analytics.profitMargin.toFixed(0)}%</div>
+                        </div>
+                      </div>
+
+                      {/* Expense Trend Chart */}
+                      {analytics.expenseTrend.some(m => m.expenses > 0 || m.revenue > 0) && (
+                        <div className="mb-6">
+                          <div className="text-sm text-gray-400 mb-3">6 Month Trend</div>
+                          <div className="flex justify-between items-end h-32 gap-2">
+                            {analytics.expenseTrend.map((m, i) => {
+                              const maxVal = Math.max(...analytics.expenseTrend.map(x => Math.max(x.revenue, x.expenses)), 1);
+                              return (
+                                <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                                  <div className="w-full flex gap-1 items-end h-24">
+                                    <div className="flex-1 bg-emerald-500/60 rounded-t" style={{height: `${(m.revenue / maxVal) * 100}%`, minHeight: m.revenue > 0 ? '4px' : '0'}} title={`Revenue: ${currency}${m.revenue}`} />
+                                    <div className="flex-1 bg-red-500/60 rounded-t" style={{height: `${(m.expenses / maxVal) * 100}%`, minHeight: m.expenses > 0 ? '4px' : '0'}} title={`Expenses: ${currency}${m.expenses}`} />
+                                  </div>
+                                  <span className="text-xs text-gray-500">{m.month}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className="flex justify-center gap-6 mt-3">
+                            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-emerald-500/60" /><span className="text-xs text-gray-400">Revenue</span></div>
+                            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-red-500/60" /><span className="text-xs text-gray-400">Expenses</span></div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Expenses by Category */}
+                      {(analytics.totalExpenses > 0 || analytics.thisMonthShare > 0) && (
+                        <div>
+                          <div className="text-sm text-gray-400 mb-3">By Category (This Month)</div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            {/* Show Share first if there's revenue share */}
+                            {revenueSharePercent > 0 && (
+                              <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 text-center">
+                                <div className="text-orange-400 font-medium">{currency}{analytics.thisMonthShare.toLocaleString()}</div>
+                                <div className="text-xs text-gray-400">Share ({revenueSharePercent}%)</div>
+                              </div>
+                            )}
+                            {expenseCategories.filter(cat => analytics.expensesByCategory[cat] > 0).map(cat => (
+                              <div key={cat} className="bg-gray-700/30 rounded-lg p-3 text-center">
+                                <div className="text-white font-medium">{currency}{analytics.expensesByCategory[cat].toLocaleString()}</div>
+                                <div className="text-xs text-gray-400">{cat}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* All-time Totals */}
+                      <div className="mt-6 pt-4 border-t border-gray-700">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-400">All-time Profit:</span>
+                          <span className={`font-medium ${analytics.totalProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{currency}{analytics.totalProfit.toLocaleString()} ({analytics.totalProfitMargin.toFixed(0)}% margin)</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Monthly Membership Stats */}
+                    {analytics.monthlyStats.totalMembers > 0 && (
+                      <div className="bg-gray-800/50 backdrop-blur border border-violet-500/30 rounded-2xl p-6 mb-10">
+                        <h3 className="text-lg font-semibold mb-6">📆 Monthly Memberships</h3>
+                        
+                        {/* Overview Cards */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                          <div className="bg-violet-500/10 border border-violet-500/30 rounded-xl p-4 text-center">
+                            <div className="text-gray-400 text-xs mb-1">Members</div>
+                            <div className="text-2xl font-bold text-violet-400">{analytics.monthlyStats.totalMembers}</div>
+                          </div>
+                          <div className="bg-gray-700/30 rounded-xl p-4 text-center">
+                            <div className="text-gray-400 text-xs mb-1">Sessions Included</div>
+                            <div className="text-2xl font-bold text-white">{analytics.monthlyStats.totalSessionsIncluded}</div>
+                          </div>
+                          <div className="bg-gray-700/30 rounded-xl p-4 text-center">
+                            <div className="text-gray-400 text-xs mb-1">Sessions Used</div>
+                            <div className="text-2xl font-bold text-emerald-400">{analytics.monthlyStats.totalSessionsUsed}</div>
+                          </div>
+                          <div className={`${analytics.monthlyStats.utilizationRate >= 80 ? 'bg-emerald-500/10 border-emerald-500/30' : analytics.monthlyStats.utilizationRate >= 50 ? 'bg-yellow-500/10 border-yellow-500/30' : 'bg-red-500/10 border-red-500/30'} border rounded-xl p-4 text-center`}>
+                            <div className="text-gray-400 text-xs mb-1">Utilization</div>
+                            <div className={`text-2xl font-bold ${analytics.monthlyStats.utilizationRate >= 80 ? 'text-emerald-400' : analytics.monthlyStats.utilizationRate >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>{analytics.monthlyStats.utilizationRate.toFixed(0)}%</div>
+                          </div>
+                        </div>
+
+                        {/* Per Client Breakdown */}
+                        {analytics.monthlyClientStats.length > 0 && (
+                          <div>
+                            <div className="text-sm text-gray-400 mb-3">By Member</div>
+                            <div className="space-y-2">
+                              {analytics.monthlyClientStats.map((stat, i) => (
+                                <div key={i} className="flex items-center justify-between bg-gray-700/30 rounded-xl px-4 py-3">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white text-xs font-semibold">{stat.client?.name?.split(' ').map(n=>n[0]).join('') || '?'}</div>
+                                    <div>
+                                      <div className="text-white font-medium text-sm">{stat.client?.name || 'Unknown'}</div>
+                                      <div className="text-xs text-gray-400">{stat.payments} payment(s)</div>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="text-white font-medium">{stat.sessionsUsed}/{stat.sessionsIncluded}</div>
+                                    <div className={`text-xs ${stat.utilization >= 80 ? 'text-emerald-400' : stat.utilization >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>{stat.utilization.toFixed(0)}% used</div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <p className="text-gray-500 text-xs text-center mt-4">Monthly memberships don't roll over - sessions reset each period</p>
+                      </div>
+                    )}
+
+                    {/* Business Insights */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                      {/* Best Day of Week */}
+                      <div className="bg-gray-800/50 backdrop-blur border border-blue-500/30 rounded-2xl p-6">
+                        <h3 className="text-lg font-semibold mb-6">📅 Best Day</h3>
+                        {payments.length === 0 ? <p className="text-gray-500 text-center py-8">No data yet</p> : (
+                          <div>
+                            <div className="text-center mb-6">
+                              <div className="text-4xl font-bold text-blue-400">{analytics.bestDay.name}</div>
+                              <div className="text-gray-400">{currency}{analytics.bestDay.amount.toLocaleString()} total</div>
+                            </div>
+                            <div className="flex justify-between items-end h-24 gap-1">
+                              {analytics.dayNames.map((day, i) => {
+                                const max = Math.max(...analytics.incomeByDay);
+                                const height = max > 0 ? (analytics.incomeByDay[i] / max) * 100 : 0;
+                                return (
+                                  <div key={day} className="flex-1 flex flex-col items-center gap-1">
+                                    <div className={`w-full rounded-t ${i === analytics.incomeByDay.indexOf(max) ? 'bg-blue-500' : 'bg-gray-600'}`} style={{height: `${height}%`, minHeight: height > 0 ? '4px' : '0'}} />
+                                    <span className="text-xs text-gray-400">{day}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Client Retention & Pack Stats */}
+                      <div className="bg-gray-800/50 backdrop-blur border border-teal-500/30 rounded-2xl p-6">
+                        <h3 className="text-lg font-semibold mb-6">📈 Business Stats</h3>
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center p-3 bg-gray-700/30 rounded-xl">
+                            <div>
+                              <div className="text-gray-400 text-sm">Client Retention</div>
+                              <div className="text-xs text-gray-500">Clients with 2+ payments</div>
+                            </div>
+                            <div className={`text-2xl font-bold ${analytics.retentionRate >= 50 ? 'text-emerald-400' : analytics.retentionRate >= 25 ? 'text-yellow-400' : 'text-red-400'}`}>
+                              {analytics.retentionRate.toFixed(0)}%
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center p-3 bg-gray-700/30 rounded-xl">
+                            <div>
+                              <div className="text-gray-400 text-sm">Avg Pack Size</div>
+                              <div className="text-xs text-gray-500">Sessions per pack</div>
+                            </div>
+                            <div className="text-2xl font-bold text-cyan-400">
+                              {analytics.avgPackSize.toFixed(1)}
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center p-3 bg-gray-700/30 rounded-xl">
+                            <div>
+                              <div className="text-gray-400 text-sm">Avg Pack Value</div>
+                              <div className="text-xs text-gray-500">Revenue per pack</div>
+                            </div>
+                            <div className="text-2xl font-bold text-emerald-400">
+                              {currency}{analytics.avgPackValue.toFixed(0)}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    </>
+                    )}
+
+                    {/* DASHBOARD TAB - Monthly Challenge */}
+                    {activeTab === 'dashboard' && (
+                    <div className="bg-gray-800/50 backdrop-blur border border-orange-500/30 rounded-2xl p-6 mb-10">
+                      <div className="flex justify-between items-start mb-4">
+                        <h3 className="text-lg font-semibold">🎯 Monthly Challenge</h3>
+                        <button onClick={() => { setNewChallenge(monthlyChallenge); setShowChallengeModal(true); }} className="text-gray-400 hover:text-white text-sm">Edit</button>
+                      </div>
+                      <div className="text-center mb-4">
+                        <div className="text-xl font-medium text-white mb-2">{monthlyChallenge.title}</div>
+                        <div className="text-4xl font-bold text-orange-400">
+                          {monthlyChallenge.type === 'revenue' ? currency : ''}{analytics.challengeProgress}
+                          <span className="text-2xl text-gray-400">/{monthlyChallenge.type === 'revenue' ? currency : ''}{monthlyChallenge.target}</span>
+                        </div>
+                      </div>
+                      <div className="h-4 bg-gray-700 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full transition-all ${analytics.challengeProgress >= monthlyChallenge.target ? 'bg-gradient-to-r from-orange-500 to-yellow-400' : 'bg-orange-500'}`} style={{width: `${Math.min((analytics.challengeProgress / monthlyChallenge.target) * 100, 100)}%`}} />
+                      </div>
+                      {analytics.challengeProgress >= monthlyChallenge.target && (
+                        <div className="mt-4 p-3 bg-orange-500/20 border border-orange-500/50 rounded-xl text-center">
+                          <span className="text-orange-400 font-medium">🎉 Challenge Complete!</span>
+                        </div>
+                      )}
+                    </div>
+                    )}
+
+                    {/* ANALYTICS TAB - YoY Growth & Capacity */}
+                    {activeTab === 'analytics' && (
+                    <>
+                    {/* Year-over-Year Growth */}
+                    <div className="bg-gray-800/50 backdrop-blur border border-indigo-500/30 rounded-2xl p-6 mb-10">
+                      <h3 className="text-lg font-semibold mb-6">📈 Year-over-Year Growth</h3>
+                      <div className="grid grid-cols-2 gap-6">
+                        <div className="text-center">
+                          <div className="text-gray-400 text-sm mb-2">This Year Total</div>
+                          <div className="text-3xl font-bold text-white">{currency}{analytics.thisYearRevenue.toLocaleString()}</div>
+                          {analytics.yoyGrowth !== null && (
+                            <div className={`text-sm font-medium mt-1 ${analytics.yoyGrowth >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {analytics.yoyGrowth >= 0 ? '↑' : '↓'} {Math.abs(analytics.yoyGrowth).toFixed(0)}% vs last year
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-center">
+                          <div className="text-gray-400 text-sm mb-2">This Month vs Last Year</div>
+                          <div className="text-3xl font-bold text-white">{currency}{analytics.thisMonthThisYear.toLocaleString()}</div>
+                          {analytics.monthYoyGrowth !== null && (
+                            <div className={`text-sm font-medium mt-1 ${analytics.monthYoyGrowth >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {analytics.monthYoyGrowth >= 0 ? '↑' : '↓'} {Math.abs(analytics.monthYoyGrowth).toFixed(0)}% vs {new Date().toLocaleString('en', {month: 'short'})} last year
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Capacity & Workload */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                      {/* Capacity Utilization */}
+                      <div className="bg-gray-800/50 backdrop-blur border border-lime-500/30 rounded-2xl p-6">
+                        <h3 className="text-lg font-semibold mb-4">⚡ Capacity</h3>
+                        <div className="text-center mb-4">
+                          <div className={`text-5xl font-bold ${analytics.capacityUtilization >= 80 ? 'text-red-400' : analytics.capacityUtilization >= 60 ? 'text-yellow-400' : 'text-lime-400'}`}>
+                            {analytics.capacityUtilization.toFixed(0)}%
+                          </div>
+                          <div className="text-gray-400 text-sm">utilized this month</div>
+                        </div>
+                        <div className="h-3 bg-gray-700 rounded-full overflow-hidden mb-4">
+                          <div className={`h-full rounded-full ${analytics.capacityUtilization >= 80 ? 'bg-red-500' : analytics.capacityUtilization >= 60 ? 'bg-yellow-500' : 'bg-lime-500'}`} style={{width: `${Math.min(analytics.capacityUtilization, 100)}%`}} />
+                        </div>
+                        <div className="text-center text-sm">
+                          <span className="text-gray-400">{analytics.thisMonthSessions}/{analytics.monthlyCapacity} sessions</span>
+                          <span className="text-gray-500 mx-2">•</span>
+                          <span className="text-lime-400">{analytics.availableSlots} slots available</span>
+                        </div>
+                      </div>
+
+                      {/* Workload Trend */}
+                      <div className="bg-gray-800/50 backdrop-blur border border-violet-500/30 rounded-2xl p-6">
+                        <h3 className="text-lg font-semibold mb-4">📊 Workload Trend</h3>
+                        <div className="text-center mb-4">
+                          <div className={`text-4xl ${analytics.workloadDirection === 'up' ? 'text-emerald-400' : analytics.workloadDirection === 'down' ? 'text-red-400' : 'text-gray-400'}`}>
+                            {analytics.workloadDirection === 'up' ? '📈' : analytics.workloadDirection === 'down' ? '📉' : '➡️'}
+                          </div>
+                          <div className={`text-lg font-medium ${analytics.workloadDirection === 'up' ? 'text-emerald-400' : analytics.workloadDirection === 'down' ? 'text-red-400' : 'text-gray-400'}`}>
+                            {analytics.workloadDirection === 'up' ? 'Getting Busier' : analytics.workloadDirection === 'down' ? 'Slowing Down' : 'Stable'}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          {analytics.workloadTrend.map((w, i) => (
+                            <div key={i} className="flex justify-between items-center">
+                              <span className="text-gray-400 text-sm">{w.month}</span>
+                              <div className="flex items-center gap-2">
+                                <div className="w-24 h-2 bg-gray-700 rounded-full overflow-hidden">
+                                  <div className="h-full bg-violet-500 rounded-full" style={{width: `${(w.sessions / Math.max(...analytics.workloadTrend.map(x => x.sessions), 1)) * 100}%`}} />
+                                </div>
+                                <span className="text-white font-medium w-8 text-right">{w.sessions}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    </>
+                    )}
+
+                    {/* CLIENTS TAB - Win-back & Upsell */}
+                    {activeTab === 'clients' && (
+                    <>
+                    {/* Win-back Alerts */}
+                    {analytics.winbackAlerts.length > 0 && (
+                      <div className="bg-gray-800/50 backdrop-blur border border-red-500/30 rounded-2xl p-6 mb-10">
+                        <h3 className="text-lg font-semibold mb-4">🔔 Win-back Alerts</h3>
+                        <p className="text-gray-400 text-sm mb-4">Clients who finished their pack 45+ days ago</p>
+                        <div className="space-y-3">
+                          {analytics.winbackAlerts.slice(0, 5).map(c => (
+                            <div key={c.id} className="flex items-center justify-between bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center text-white font-semibold text-sm">{c.name?.split(' ').map(n=>n[0]).join('')}</div>
+                                <div>
+                                  <div className="text-white font-medium">{c.name}</div>
+                                  <div className="text-xs text-gray-400">Total spent: {currency}{c.totalSpent.toLocaleString()}</div>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-red-400 font-medium">{c.daysSinceContact} days</div>
+                                <div className="text-xs text-gray-500">since last session</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Upsell Opportunities */}
+                    {analytics.upsellOpportunities.length > 0 && (
+                      <div className="bg-gray-800/50 backdrop-blur border border-emerald-500/30 rounded-2xl p-6 mb-10">
+                        <h3 className="text-lg font-semibold mb-4">💎 Upsell Opportunities</h3>
+                        <p className="text-gray-400 text-sm mb-4">Loyal clients buying small packs - ready for bigger commitments</p>
+                        <div className="space-y-3">
+                          {analytics.upsellOpportunities.slice(0, 5).map(c => (
+                            <div key={c.id} className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center text-white font-semibold text-sm">{c.name?.split(' ').map(n=>n[0]).join('')}</div>
+                                <div>
+                                  <div className="text-white font-medium">{c.name}</div>
+                                  <div className="text-xs text-gray-400">Avg pack: {c.currentAvgPack.toFixed(0)} sessions</div>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-emerald-400 font-medium">{currency}{c.totalSpent.toLocaleString()}</div>
+                                <div className="text-xs text-gray-500">total spent</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Referral Stats & Client Lifespan */}
+                    </>
+                    )}
+
+                    {/* ANALYTICS TAB - Referrals & Client Lifespan */}
+                    {activeTab === 'analytics' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                      {/* Referral Tracking */}
+                      <div className="bg-gray-800/50 backdrop-blur border border-pink-500/30 rounded-2xl p-6">
+                        <h3 className="text-lg font-semibold mb-4">🤝 Referrals</h3>
+                        <div className="text-center mb-4">
+                          <div className="text-4xl font-bold text-pink-400">{analytics.totalReferrals}</div>
+                          <div className="text-gray-400 text-sm">clients from referrals</div>
+                        </div>
+                        {analytics.topReferrers.length > 0 && (
+                          <div>
+                            <div className="text-sm text-gray-400 mb-2">Top Referrers</div>
+                            <div className="space-y-2">
+                              {analytics.topReferrers.map((r, i) => (
+                                <div key={i} className="flex justify-between items-center bg-gray-700/30 rounded-lg px-3 py-2">
+                                  <span className="text-white text-sm">{r.client?.name}</span>
+                                  <span className="text-pink-400 font-medium">{r.count} referrals</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {analytics.totalReferrals === 0 && (
+                          <p className="text-gray-500 text-center text-sm">Add referral info when creating new clients</p>
+                        )}
+                      </div>
+
+                      {/* Client Lifespan */}
+                      <div className="bg-gray-800/50 backdrop-blur border border-cyan-500/30 rounded-2xl p-6">
+                        <h3 className="text-lg font-semibold mb-4">⏱️ Client Lifespan</h3>
+                        <div className="text-center mb-4">
+                          <div className="text-4xl font-bold text-cyan-400">{analytics.avgClientLifespan.toFixed(1)}</div>
+                          <div className="text-gray-400 text-sm">months average</div>
+                        </div>
+                        <div className="bg-gray-700/30 rounded-xl p-4">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-gray-400 text-sm">Client Retention</span>
+                            <span className={`font-medium ${analytics.retentionRate >= 50 ? 'text-emerald-400' : 'text-yellow-400'}`}>{analytics.retentionRate.toFixed(0)}%</span>
+                          </div>
+                          <div className="text-xs text-gray-500">Higher lifespan = more revenue per client</div>
+                        </div>
+                      </div>
+                    </div>
+                    )}
+
+                    {/* ACHIEVEMENTS TAB - Extended Milestones */}
+                    {activeTab === 'achievements' && analytics.extendedMilestones.length > 0 && (
+                      <div className="bg-gray-800/50 backdrop-blur border border-amber-500/30 rounded-2xl p-6 mb-10">
+                        <h3 className="text-lg font-semibold mb-4">🏆 Milestones & Badges</h3>
+                        <div className="flex flex-wrap gap-3">
+                          {analytics.extendedMilestones.map((m, i) => (
+                            <div key={i} className="px-4 py-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-center">
+                              <div className="text-2xl mb-1">{m.icon}</div>
+                              <div className="text-amber-400 font-medium text-sm">{m.label}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </main>
+          </div>
+        </div>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+  
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then((registration) => {
+            console.log('SW registered:', registration.scope);
+          })
+          .catch((error) => {
+            console.log('SW registration failed:', error);
+          });
+      });
+    }
+  </script>
+</body>
+</html>
