@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Revenue Compass — Design System v1.0</title>
+<meta name="theme-color" content="#08090b" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  color-scheme: dark;
+
+  /* ────────────────────────────────────────────────
+     CORE TOKEN STRATEGY
+     Tier 1 (primitives)  →  --rc-graphite-900
+     Tier 2 (semantic)    →  --rc-bg, --rc-ink
+     Tier 3 (components)  →  --rc-btn-primary-bg
+     Always reference Tier 2/3, never Tier 1, in app code.
+     ──────────────────────────────────────────────── */
+
+  /* Tier 1 — Graphite primitives */
+  --graphite-1000: #06070a;
+  --graphite-950:  #08090b;
+  --graphite-900:  #0c0d10;
+  --graphite-800:  #101216;
+  --graphite-700:  #181a20;
+  --graphite-600:  #1f2129;
+  --graphite-500:  #2a2d36;
+  --graphite-400:  #3a3e49;
+  --graphite-300:  #5a5e6b;
+  --graphite-200:  #76787e;
+  --graphite-100:  #b3b4b8;
+  --graphite-50:   #e6e6e3;
+  --graphite-0:    #f4f4f1;
+
+  /* Tier 1 — Signal accent */
+  --signal-100: #e8fa9d;
+  --signal-200: #d6f774;
+  --signal-300: #c8f25c;   /* primary signal */
+  --signal-400: #b9e548;
+  --signal-500: #9bc23d;
+  --signal-glow: rgba(200,242,92,0.20);
+
+  /* Tier 1 — State colors */
+  --positive-300: #86d97a;
+  --warning-300:  #e8b268;
+  --critical-300: #ee6a5a;
+
+  /* Tier 2 — Semantic surface */
+  --rc-bg:        var(--graphite-950);
+  --rc-surface:   var(--graphite-800);
+  --rc-sunken:    var(--graphite-900);
+  --rc-elevated:  var(--graphite-700);
+  --rc-line:      #23262e;
+  --rc-line-soft: #1a1c22;
+
+  /* Tier 2 — Semantic ink */
+  --rc-ink:   var(--graphite-0);
+  --rc-ink-2: var(--graphite-100);
+  --rc-ink-3: var(--graphite-200);
+  --rc-ink-4: var(--graphite-300);
+
+  --rc-accent: var(--signal-300);
+
+  /* Spacing scale — 4-pt base */
+  --space-1: 4px;  --space-2: 8px;   --space-3: 12px;
+  --space-4: 16px; --space-5: 20px;  --space-6: 24px;
+  --space-8: 32px; --space-10: 40px; --space-12: 48px;
+  --space-16: 64px; --space-20: 80px; --space-24: 96px;
+
+  /* Radius scale */
+  --radius-xs: 4px;  --radius-sm: 6px;
+  --radius-md: 10px; --radius-lg: 14px;
+  --radius-xl: 18px; --radius-2xl: 24px; --radius-full: 999px;
+
+  /* Elevation — composite shadow + inner highlight */
+  --elev-0: none;
+  --elev-1: 0 1px 0 rgba(255,255,255,0.03) inset, 0 6px 18px -10px rgba(0,0,0,0.55);
+  --elev-2: 0 1px 0 rgba(255,255,255,0.04) inset, 0 12px 30px -16px rgba(0,0,0,0.6);
+  --elev-3: 0 1px 0 rgba(255,255,255,0.05) inset, 0 24px 50px -24px rgba(0,0,0,0.7);
+  --elev-4: 0 1px 0 rgba(255,255,255,0.06) inset, 0 40px 80px -30px rgba(0,0,0,0.78);
+  --elev-glow: 0 0 0 1px rgba(200,242,92,0.30), 0 18px 40px -12px rgba(200,242,92,0.40);
+
+  /* Motion */
+  --ease-standard: cubic-bezier(.2,.7,0,1);
+  --ease-emphasis: cubic-bezier(.16,1,.3,1);
+  --ease-exit:     cubic-bezier(.4,0,.6,1);
+  --dur-instant: 80ms;
+  --dur-quick:   160ms;
+  --dur-base:    240ms;
+  --dur-slow:    420ms;
+  --dur-deliberate: 720ms;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  background: var(--rc-bg);
+  color: var(--rc-ink);
+  font-family: 'Geist', ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.005em;
+  font-feature-settings: 'ss01','ss02','cv11';
+}
+body {
+  background:
+    radial-gradient(1400px 700px at 8% -8%, rgba(200,242,92,0.05), transparent 55%),
+    radial-gradient(1100px 600px at 95% 5%, rgba(120,140,200,0.025), transparent 60%),
+    var(--rc-bg);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+::selection { background: rgba(200,242,92,0.30); color: #fff; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--graphite-500); border-radius: 10px; border: 2px solid var(--rc-bg); }
+
+/* Typography */
+.eyebrow {
+  font-family: 'Geist Mono', monospace;
+  font-size: 10.5px; font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rc-ink-3);
+}
+.display {
+  font-feature-settings: 'ss01','ss02';
+  letter-spacing: -0.035em;
+  line-height: 0.95;
+  font-weight: 500;
+}
+.editorial em {
+  font-family: 'Instrument Serif', serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.005em;
+}
+.mono { font-family: 'Geist Mono', monospace; }
+
+/* Layout */
+.shell { max-width: 1240px; margin: 0 auto; padding: 0 32px; }
+@media (max-width: 700px) { .shell { padding: 0 20px; } }
+
+/* Topbar */
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  background: rgba(8,9,11,0.72);
+  border-bottom: 1px solid var(--rc-line-soft);
+}
+.topbar::after {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(200,242,92,0.18) 35%, rgba(200,242,92,0.18) 65%, transparent);
+  opacity: 0.6;
+}
+.topbar-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 24px; padding: 18px 32px;
+  max-width: 1240px; margin: 0 auto;
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+
+/* Brandmark — the recurring motif */
+.brandmark {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #1a1d24 0%, #0f1115 100%);
+  border: 1px solid var(--rc-line);
+  color: var(--rc-accent);
+  display: inline-flex; align-items: center; justify-content: center;
+  position: relative;
+  box-shadow: 0 0 0 1px rgba(200,242,92,0.10) inset, 0 8px 18px -10px rgba(200,242,92,0.30);
+}
+.brandmark::after {
+  content: ''; position: absolute; inset: -3px;
+  border-radius: 13px;
+  background: radial-gradient(circle at 30% 20%, rgba(200,242,92,0.18), transparent 60%);
+  pointer-events: none;
+}
+
+.brand-name { font-size: 16px; font-weight: 500; letter-spacing: -0.018em; }
+.brand-meta { font-family: 'Geist Mono', monospace; font-size: 10.5px; letter-spacing: 0.10em; color: var(--rc-ink-3); text-transform: uppercase; }
+
+.statusdot {
+  display: inline-block; width: 6px; height: 6px; border-radius: 999px;
+  background: var(--rc-accent);
+  box-shadow: 0 0 8px var(--rc-accent), 0 0 0 3px rgba(200,242,92,0.12);
+  animation: pulse 2.4s var(--ease-standard) infinite;
+}
+@keyframes pulse {
+  0%,100% { box-shadow: 0 0 8px var(--rc-accent), 0 0 0 3px rgba(200,242,92,0.12); }
+  50%     { box-shadow: 0 0 14px var(--rc-accent), 0 0 0 5px rgba(200,242,92,0.06); }
+}
+
+/* Hero */
+.hero {
+  padding: 96px 0 80px;
+  border-bottom: 1px solid var(--rc-line-soft);
+  position: relative;
+}
+.hero-grid {
+  display: grid;
+  grid-template-columns: 2.2fr 1fr;
+  gap: 64px;
+  align-items: end;
+}
+@media (max-width: 900px) {
+  .hero { padding: 64px 0 48px; }
+  .hero-grid { grid-template-columns: 1fr; gap: 32px; }
+}
+.hero-title {
+  font-size: clamp(48px, 7vw, 96px);
+  font-weight: 400;
+  letter-spacing: -0.04em;
+  line-height: 0.92;
+  margin: 16px 0 24px;
+}
+.hero-title em { color: var(--rc-accent); }
+.hero-sub {
+  font-size: 17px; line-height: 1.55;
+  color: var(--rc-ink-2);
+  max-width: 540px;
+}
+
+.meta-list {
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: var(--rc-ink-3);
+  display: grid;
+  gap: 10px;
+}
+.meta-list b { color: var(--rc-ink); font-weight: 500; }
+.meta-row { display: flex; justify-content: space-between; gap: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--rc-line-soft); }
+
+/* Section header */
+.section { padding: 80px 0; border-bottom: 1px solid var(--rc-line-soft); position: relative; }
+.section-head { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: end; margin-bottom: 48px; }
+@media (max-width: 800px) { .section-head { grid-template-columns: 1fr; gap: 16px; } }
+.section-h {
+  font-size: clamp(28px, 3.5vw, 44px);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  max-width: 18ch;
+}
+.section-h em { font-family: 'Instrument Serif', serif; font-style: italic; font-weight: 400; }
+.section-desc { color: var(--rc-ink-2); font-size: 15px; line-height: 1.6; max-width: 48ch; }
+.section-num {
+  font-family: 'Geist Mono', monospace; font-size: 10.5px;
+  letter-spacing: 0.18em; color: var(--rc-ink-3);
+  text-transform: uppercase; margin-bottom: 12px;
+  display: flex; align-items: center; gap: 10px;
+}
+.section-num::before { content: ''; width: 24px; height: 1px; background: var(--rc-accent); }
+
+/* Card / Surface */
+.card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.014), rgba(255,255,255,0) 40%), var(--rc-surface);
+  border: 1px solid var(--rc-line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elev-2);
+}
+.card-flat {
+  background: var(--rc-sunken);
+  border: 1px solid var(--rc-line-soft);
+  border-radius: var(--radius-md);
+}
+
+/* Color tokens grid */
+.token-grid {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+.swatch {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--rc-line);
+  overflow: hidden; background: var(--rc-surface);
+}
+.swatch-color { height: 84px; position: relative; }
+.swatch-meta { padding: 12px 14px; font-family: 'Geist Mono', monospace; font-size: 10.5px; letter-spacing: 0.06em; }
+.swatch-name { color: var(--rc-ink); margin-bottom: 4px; text-transform: uppercase; }
+.swatch-hex { color: var(--rc-ink-3); }
+
+.scale-row {
+  display: grid; grid-template-columns: 200px 1fr; gap: 24px;
+  padding: 16px 0;
+  border-top: 1px solid var(--rc-line-soft);
+  align-items: center;
+}
+.scale-row:first-child { border-top: 0; }
+.scale-name { font-family: 'Geist Mono', monospace; font-size: 11px; color: var(--rc-ink-3); text-transform: uppercase; letter-spacing: 0.08em; }
+.scale-name b { color: var(--rc-ink); font-weight: 500; }
+.scale-bars { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.scale-bar { height: 36px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.04); }
+
+/* Type pairing */
+.type-row {
+  display: grid; grid-template-columns: 220px 1fr; gap: 32px;
+  padding: 28px 0;
+  border-top: 1px solid var(--rc-line-soft);
+  align-items: baseline;
+}
+.type-row:first-child { border-top: 0; }
+.type-meta { font-family: 'Geist Mono', monospace; font-size: 11px; color: var(--rc-ink-3); text-transform: uppercase; letter-spacing: 0.10em; line-height: 1.6; }
+.type-meta b { color: var(--rc-ink); display: block; font-weight: 500; }
+
+/* Icon grid */
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 1px;
+  background: var(--rc-line-soft);
+  border: 1px solid var(--rc-line-soft);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.icon-cell {
+  background: var(--rc-surface);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; padding: 18px 8px;
+  position: relative;
+  transition: background var(--dur-base) var(--ease-standard);
+}
+.icon-cell:hover {
+  background: var(--rc-elevated);
+}
+.icon-cell:hover .icon-name { color: var(--rc-accent); }
+.icon-cell svg { width: 22px; height: 22px; color: var(--rc-ink); transition: color var(--dur-base) var(--ease-standard); }
+.icon-cell:hover svg { color: var(--rc-accent); }
+.icon-name {
+  font-family: 'Geist Mono', monospace; font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--rc-ink-3);
+  text-transform: lowercase;
+  transition: color var(--dur-base) var(--ease-standard);
+}
+
+.icon-section-title {
+  font-family: 'Geist Mono', monospace; font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--rc-ink-3);
+  text-transform: uppercase;
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--rc-line-soft);
+  display: flex; justify-content: space-between; align-items: center;
+}
+
+/* Component samples */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 9px 14px; font-size: 13.5px; font-weight: 500;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  transition: background var(--dur-base) var(--ease-standard), color var(--dur-base) var(--ease-standard),
+              border-color var(--dur-base) var(--ease-standard), transform var(--dur-quick) var(--ease-standard),
+              box-shadow var(--dur-base) var(--ease-standard);
+}
+.btn:active { transform: translateY(0.5px) scale(0.99); }
+.btn-primary {
+  background: var(--rc-accent); color: #0a0b0d;
+  box-shadow: 0 0 0 1px rgba(200,242,92,0.6) inset, 0 8px 22px -10px rgba(200,242,92,0.45);
+}
+.btn-primary:hover { background: var(--signal-200); box-shadow: 0 0 0 1px rgba(200,242,92,0.8) inset, 0 12px 28px -8px rgba(200,242,92,0.55); }
+.btn-accent {
+  background: rgba(200,242,92,0.08); color: var(--rc-accent);
+  border-color: rgba(200,242,92,0.25);
+}
+.btn-accent:hover { background: rgba(200,242,92,0.14); border-color: rgba(200,242,92,0.45); }
+.btn-secondary {
+  background: var(--rc-elevated); color: var(--rc-ink);
+  border-color: var(--rc-line);
+}
+.btn-secondary:hover { background: #1f222a; border-color: #303542; }
+.btn-ghost { background: transparent; color: var(--rc-ink-2); }
+.btn-ghost:hover { background: var(--rc-elevated); color: var(--rc-ink); }
+
+.input {
+  width: 100%;
+  background: var(--rc-sunken);
+  border: 1px solid var(--rc-line);
+  border-radius: var(--radius-md);
+  padding: 11px 13px; color: var(--rc-ink);
+  font-size: 14px; line-height: 20px;
+  transition: border-color var(--dur-base) var(--ease-standard), box-shadow var(--dur-base) var(--ease-standard);
+}
+.input::placeholder { color: var(--rc-ink-4); }
+.input:focus { outline: none; border-color: var(--rc-accent); box-shadow: 0 0 0 3px var(--signal-glow); background: var(--rc-surface); }
+
+.pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: 'Geist Mono', monospace;
+  font-size: 10.5px; font-weight: 500;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--rc-elevated);
+  color: var(--rc-ink-2);
+  letter-spacing: 0.06em;
+  border: 1px solid var(--rc-line);
+}
+.pill-up { background: rgba(134,217,122,0.10); color: #a6e599; border-color: rgba(134,217,122,0.22); }
+.pill-down { background: rgba(238,106,90,0.10); color: #f29080; border-color: rgba(238,106,90,0.22); }
+.pill-warn { background: rgba(232,178,104,0.10); color: #ecc28b; border-color: rgba(232,178,104,0.22); }
+
+/* Empty state cards */
+.illust-card {
+  padding: 32px;
+  display: flex; flex-direction: column; align-items: flex-start;
+  gap: 16px; min-height: 240px;
+  position: relative; overflow: hidden;
+}
+.illust-card-art {
+  width: 100%; height: 140px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-md);
+  background:
+    radial-gradient(400px 200px at 50% 0%, rgba(200,242,92,0.07), transparent 60%),
+    var(--rc-sunken);
+  border: 1px solid var(--rc-line-soft);
+}
+
+/* Skeleton */
+.skeleton {
+  background: linear-gradient(90deg, var(--rc-elevated) 0%, #22252e 50%, var(--rc-elevated) 100%);
+  background-size: 220% 100%;
+  animation: shimmer 1.6s var(--ease-standard) infinite;
+  border-radius: var(--radius-sm);
+}
+@keyframes shimmer { 0% { background-position: 220% 0; } 100% { background-position: -20% 0; } }
+
+/* Surfaces showcase */
+.surface-stack {
+  display: grid; gap: 16px;
+}
+.surface-bar {
+  height: 88px; border-radius: var(--radius-lg);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+  border: 1px solid var(--rc-line);
+}
+.surface-name { font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
+.surface-meta { font-family: 'Geist Mono', monospace; font-size: 10.5px; color: var(--rc-ink-3); letter-spacing: 0.06em; }
+
+.s-bg { background: var(--rc-bg); }
+.s-sunken { background: var(--rc-sunken); }
+.s-surface { background: var(--rc-surface); }
+.s-elevated { background: var(--rc-elevated); box-shadow: var(--elev-2); border-color: #2a2d36; }
+.s-glow {
+  background: linear-gradient(180deg, rgba(255,255,255,0.014), rgba(255,255,255,0) 40%), var(--rc-surface);
+  box-shadow: var(--elev-glow);
+  border-color: rgba(200,242,92,0.30);
+}
+
+/* Footnotes — code/spec */
+.spec {
+  font-family: 'Geist Mono', monospace;
+  font-size: 12px;
+  background: var(--rc-sunken);
+  border: 1px solid var(--rc-line-soft);
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+  color: var(--rc-ink-2);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+.spec b { color: var(--rc-ink); font-weight: 500; }
+.spec span.k { color: var(--rc-accent); }
+.spec span.c { color: var(--rc-ink-4); }
+
+/* Two-col rules */
+.cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.cols-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+@media (max-width: 900px) { .cols-2, .cols-3 { grid-template-columns: 1fr; } }
+
+/* Motion timing visual */
+.timing-row {
+  display: grid; grid-template-columns: 200px 1fr 60px;
+  gap: 24px; align-items: center;
+  padding: 14px 0; border-top: 1px solid var(--rc-line-soft);
+}
+.timing-row:first-child { border-top: 0; }
+.timing-track { height: 28px; background: var(--rc-sunken); border: 1px solid var(--rc-line-soft); border-radius: var(--radius-sm); position: relative; overflow: hidden; }
+.timing-pip {
+  position: absolute; top: 4px; left: 4px;
+  width: 20px; height: 20px;
+  background: var(--rc-accent);
+  border-radius: 6px;
+  box-shadow: 0 0 12px var(--signal-glow);
+}
+
+/* Footer/bottom */
+.foot {
+  padding: 64px 0 80px;
+  display: grid; grid-template-columns: 1fr 2fr; gap: 48px;
+  color: var(--rc-ink-3); font-size: 13px; line-height: 1.7;
+}
+@media (max-width: 800px) { .foot { grid-template-columns: 1fr; } }
+.foot b { color: var(--rc-ink); font-weight: 500; }
+
+</style>
+</head>
+
+<body>
+
+<!-- ─── Topbar ──────────────────────────────────────── -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brandmark">
+        <!-- Compass motif — drawn inline from icon system -->
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9.25"/>
+          <path d="M12 3v2.4"/><path d="M12 18.6V21"/>
+          <path d="M3 12h2.4"/><path d="M18.6 12H21"/>
+          <path d="M14.2 9.8 16.5 7.5l-2.3 6.7-6.7 2.3 2.3-6.7Z" fill="currentColor" fill-opacity="0.18"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">Revenue Compass</div>
+        <div class="brand-meta"><span class="statusdot"></span>&nbsp;&nbsp;Design system · v1.0</div>
+      </div>
+    </div>
+    <nav class="brand-meta" style="display:flex; gap:24px;">
+      <span style="color:var(--rc-ink)">Tokens</span>
+      <span>Iconography</span>
+      <span>Components</span>
+      <span>Motion</span>
+    </nav>
+  </div>
+</header>
+
+<!-- ─── Hero ──────────────────────────────────────── -->
+<section class="hero">
+  <div class="shell hero-grid">
+    <div>
+      <div class="eyebrow">Performance Graphite — v1.0</div>
+      <h1 class="hero-title editorial">A system built for the<br/>numbers that <em>actually</em><br/>change a business.</h1>
+      <p class="hero-sub">Dark-first. Restrained. Performance-coded. Every token, surface, and icon below is calibrated for hours-on-end legibility — and engineered for handoff into a production codebase without flattening the design intent.</p>
+    </div>
+    <ul class="meta-list" style="list-style:none; padding:0; margin:0;">
+      <li class="meta-row"><span>Release</span><b>1.0.0 · May 2026</b></li>
+      <li class="meta-row"><span>Tier</span><b>Production-ready</b></li>
+      <li class="meta-row"><span>Tokens</span><b>286 / 12 themes</b></li>
+      <li class="meta-row"><span>Icons</span><b>72 · proprietary</b></li>
+      <li class="meta-row"><span>Owners</span><b>Design Eng</b></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ─── 01 · Brand motif ──────────────────────────────────────── -->
+<section class="section">
+  <div class="shell">
+    <div class="section-head">
+      <div>
+        <div class="section-num">01 — Brand motif</div>
+        <h2 class="section-h editorial">A compass <em>that breathes</em>.</h2>
+      </div>
+      <p class="section-desc">The brandmark is a 24×24 compass dial — circle, four cardinal ticks, and an asymmetric needle filled at 18% opacity. The motif recurs as a hairline pattern in empty states, as a glow-haloed status pip on the topbar, and as the silent watermark on tier-1 dashboard panels. It is never animated as a logo. It is allowed to <em>pulse</em> only as a status indicator.</p>
+    </div>
+
+    <div class="cols-3" style="gap:16px;">
+      <!-- Mark — primary -->
+      <div class="card" style="padding:48px; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:24px;">
+        <div class="brandmark" style="width:96px; height:96px; border-radius:24px;">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9.25"/>
+            <path d="M12 3v2.4"/><path d="M12 18.6V21"/><path d="M3 12h2.4"/><path d="M18.6 12H21"/>
+            <path d="M14.2 9.8 16.5 7.5l-2.3 6.7-6.7 2.3 2.3-6.7Z" fill="currentColor" fill-opacity="0.18"/>
+          </svg>
+        </div>
+        <div style="text-align:center">
+          <div class="eyebrow" style="margin-bottom:8px;">Primary mark</div>
+          <div class="mono" style="font-size:11px; color:var(--rc-ink-3); letter-spacing:0.08em;">96 · 64 · 38 · 24 · 16px</div>
+        </div>
+      </div>
+
+      <!-- Mark — full -->
+      <div class="card" style="padding:48px; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:24px;">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div class="brandmark" style="width:54px; height:54px; border-radius:14px;">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9.25"/>
+              <path d="M12 3v2.4"/><path d="M12 18.6V21"/><path d="M3 12h2.4"/><path d="M18.6 12H21"/>
+              <path d="M14.2 9.8 16.5 7.5l-2.3 6.7-6.7 2.3 2.3-6.7Z" fill="currentColor" fill-opacity="0.18"/>
+            </svg>
+          </div>
+          <div>
+            <div class="display" style="font-size:24px;">Revenue<br/><span class="editorial"><em style="font-family:'Instrument Serif', serif; font-style:italic; font-weight:400;">Compass</em></span></div>
+          </div>
+        </div>
+        <div style="text-align:center">
+          <div class="eyebrow" style="margin-bottom:8px;">Full lockup</div>
+          <div class="mono" style="font-size:11px; color:var(--rc-ink-3); letter-spacing:0.08em;">primary · clear-space 1× mark height</div>
+        </div>
+      </div>
+
+      <!-- Pattern motif -->
+      <div class="card" style="padding:0; overflow:hidden;">
+        <div style="height:280px; position:relative; background: var(--rc-surface);">
+          <svg viewBox="0 0 320 280" width="100%" height="100%" style="display:block; position:absolute; inset:0; opacity:0.5;">
+            <defs>
+              <pattern id="dial" width="60" height="60" patternUnits="userSpaceOnUse">
+                <circle cx="30" cy="30" r="22" fill="none" stroke="#23262e" stroke-width="0.8"/>
+                <line x1="30" y1="6"  x2="30" y2="11" stroke="#23262e" stroke-width="0.8"/>
+                <line x1="30" y1="49" x2="30" y2="54" stroke="#23262e" stroke-width="0.8"/>
+                <line x1="6"  y1="30" x2="11" y2="30" stroke="#23262e" stroke-width="0.8"/>
+                <line x1="49" y1="30" x2="54" y2="30" stroke="#23262e" stroke-width="0.8"/>
+              </pattern>
+              <radialGradient id="ftade" cx="0.3" cy="0.2" r="0.9">
+                <stop offset="0%" stop-color="rgba(200,242,92,0.35)"/>
+                <stop offset="50%" stop-color="rgba(200,242,92,0.05)"/>
+                <stop offset="100%" stop-color="rgba(200,242,92,0)"/>
+              </radialGradient>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#dial)"/>
+            <rect width="100%" height="100%" fill="url(#ftade)"/>
+          </svg>
+          <div style="position:absolute; left:24px; bottom:20px;">
+            <div class="eyebrow" style="margin-bottom:6px;">Watermark pattern</div>
+            <div class="mono" style="font-size:11px; color:var(--rc-ink-3);">dial-60 · 0.5 opacity · onboarding only</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 02 · Color tokens ──────────────────────────────────────── -->
+<section class="section">
+  <div class="shell">
+    <div class="section-head">
+      <div>
+        <div class="section-num">02 — Color</div>
+        <h2 class="section-h editorial">Graphite, with a single <em>signal</em>.</h2>
+      </div>
+      <p class="section-desc">Two scales do almost all the work. <b style="color:var(--rc-ink)">Graphite</b> handles every surface, border, and text rank. <b style="color:var(--rc-accent)">Signal</b> — an electric chartreuse — is reserved for primary action, focus, status, and one chart series at a time. State colours (positive / warning / critical) only ever appear inside pills, alerts, and chart fills.</p>
+    </div>
+
+    <!-- Graphite scale -->
+    <div class="scale-row">
+      <div class="scale-name">Graphite · <b>11 stops</b><br/><span style="color:var(--rc-ink-4)">--graphite-{1000…0}</span></div>
+      <div class="scale-bars">
+        <div class="scale-bar" style="background:#06070a; width:64px;" title="--graphite-1000"></div>
+        <div class="scale-bar" style="background:#08090b; width:64px;"></div>
+        <div class="scale-bar" style="background:#0c0d10; width:64px;"></div>
+        <div class="scale-bar" style="background:#101216; width:64px;"></div>
+        <div class="scale-bar" style="background:#181a20; width:64px;"></div>
+        <div class="scale-bar" style="background:#1f2129; width:64px;"></div>
+        <div class="scale-bar" style="background:#2a2d36; width:64px;"></div>
+        <div class="scale-bar" style="background:#3a3e49; width:64px;"></div>
+        <div class="scale-bar" style="background:#5a5e6b; width:64px;"></div>
+        <div class="scale-bar" style="background:#76787e; width:64px;"></div>
+        <div class="scale-bar" style="background:#b3b4b8; width:64px;"></div>
+        <div class="scale-bar" style="background:#e6e6e3; width:64px;"></div>
+        <div class="scale-bar" style="background:#f4f4f1; width:64px;"></div>
+      </div>
+    </div>
+
+    <!-- Signal scale -->
+    <div class="scale-row">
+      <div class="scale-name">Signal · <b>5 stops</b><br/><span style="color:var(--rc-ink-4)">--signal-{100…500}</span></div>
+      <div class="scale-bars">
+        <div class="scale-bar" style="background:#e8fa9d; width:120px;"></div>
+        <div class="scale-bar" style="background:#d6f774; width:120px;"></div>
+        <div class="scale-bar" style="background:#c8f25c; width:120px; box-shadow: 0 0 24px -6px rgba(200,242,92,0.55);"></div>
+        <div class="scale-bar" style="background:#b9e548; width:120px;"></div>
+        <div class="scale-bar" style="background:#9bc23d; width:120px;"></div>
+      </div>
+    </div>
+
+    <!-- States -->
+    <div class="scale-row">
+      <div class="scale-name">State · <b>positive · warning · critical</b><br/><span style="color:var(--rc-ink-4)">soft fills + rim borders only</span></div>
+      <div class="scale-bars">
+        <div class="scale-bar" style="background:#86d97a; width:140px;"></div>
+        <div class="scale-bar" style="background:#e8b268; width:140px;"></div>
+        <div class="scale-bar" style="background:#ee6a5a; width:140px;"></div>
+      </div>
+    </div>
+
+    <!-- Semantic mapping -->
+    <div style="margin-top:48px;">
+      <div class="section-num">02b — Semantic mapping</div>
+      <div class="cols-2" style="gap:16px; margin-top:16px;">
+        <div class="token-grid">
+          <div class="swatch"><div class="swatch-color" style="background:var(--rc-bg)"></div><div class="swatch-meta"><div class="swatch-name">--rc-bg</div><div class="swatch-hex">graphite-950 · #08090b</div></div></div>
+          <div class="swatch"><div class="swatch-color" style="background:var(--rc-sunken)"></div><div class="swatch-meta"><div class="swatch-name">--rc-sunken</div><div class="swatch-hex">graphite-900 · inputs</div></div></div>
+          <div class="swatch"><div class="swatch-color" style="background:var(--rc-surface)"></div><div class="swatch-meta"><div class="swatch-name">--rc-surface</div><div class="swatch-hex">graphite-800 · cards</div></div></div>
+          <div class="swatch"><div class="swatch-color" style="background:var(--rc-elevated)"></div><div class="swatch-meta"><div class="swatch-name">--rc-elevated</div><div class="swatch-hex">graphite-700 · hover</div></div></div>
+        </div>
+        <div class="token-grid">
+          <div class="swatch"><div class="swatch-color" style="background:var(--rc-ink)"></div><div class="swatch-meta"><div class="swatch-name" style="color:#0a0b0d">--rc-ink</div><div class="swatch-hex" style="color:#5a5e6b">primary text</div></div></div>
+          <div class="swatch"><div class="swatch-color" style="background:var(--rc-ink-2)"></div><div class="swatch-meta"><div class="swatch-name" style="color:#0a0b0d">--rc-ink-2</div><div class="swatch-hex" style="color:#5a5e6b">secondary</div></div></div>
+          <div class="swatch"><div class="swatch-color" style="background:var(--rc-ink-3)"></div><div class="swatch-meta"><div class="swatch-name">--rc-ink-3</div><div class="swatch-hex">tertiary</div></div></div>
+          <div class="swatch"><div class="swatch-color" style="background:var(--rc-accent); box-shadow: 0 0 24px -4px rgba(200,242,92,0.5);"></div><div class="swatch-meta"><div class="swatch-name" style="color:#0a0b0d">--rc-accent</div><div class="swatch-hex" style="color:#5a5e6b">signal · CTA · focus</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 03 · Type pairing ──────────────────────────────────────── -->
+<section class="section">
+  <div class="shell">
+    <div class="section-head">
+      <div>
+        <div class="section-num">03 — Type</div>
+        <h2 class="section-h editorial">Geist & Instrument Serif. <em>That is all.</em></h2>
+      </div>
+      <p class="section-desc">A geometric sans for the system, a single italic serif for editorial moments inside large headings, and a precise mono for labels and numerals. No other faces are sanctioned.</p>
+    </div>
+
+    <div>
+      <div class="type-row">
+        <div class="type-meta"><b>Geist · 96 / -0.04em</b>Display · 400<br/>Hero, marketing</div>
+        <div class="display editorial" style="font-size:84px; font-weight:400; line-height:0.92; letter-spacing:-0.04em;">Revenue, <em style="font-family:'Instrument Serif',serif; font-style:italic; font-weight:400;">honestly</em>.</div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta"><b>Geist · 44 / -0.03em</b>Section H · 500<br/>In-app section heading</div>
+        <div class="editorial" style="font-size:42px; font-weight:500; letter-spacing:-0.03em; line-height:1.05;">Where the <em style="font-family:'Instrument Serif',serif; font-style:italic; font-weight:400;">numbers</em> live.</div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta"><b>Geist · 34 / -0.035em</b>Display Number · 500<br/>Tabular numerals · ss01,ss02</div>
+        <div class="display tnum" style="font-size:44px; font-variant-numeric:tabular-nums;">€7,840 <span class="pill pill-up" style="vertical-align:middle; font-size:11px;">↑ 12%</span></div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta"><b>Geist · 17 / -0.005em</b>Body · 400<br/>Long-form, explanations</div>
+        <div style="font-size:17px; line-height:1.55; max-width:520px; color:var(--rc-ink-2);">Coaching businesses do not stall because the dashboard is missing a chart. They stall because the next move isn't obvious. Revenue Compass exists to make the next move obvious — and to do it without raising your blood pressure.</div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta"><b>Geist Mono · 11 / 0.14em</b>Eyebrow / Label · 500<br/>UPPERCASE</div>
+        <div class="eyebrow" style="font-size:13px;">COACHING BUSINESS HEALTH · DELIVERED THIS MONTH</div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta"><b>Geist · 13.5 / -0.005em</b>UI default · 500<br/>Button, nav, inline</div>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <button class="btn btn-primary">Log revenue</button>
+          <button class="btn btn-secondary">Mark complete</button>
+          <span style="color:var(--rc-ink-2); font-size:13.5px;">8 of 12 sessions</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 04 · Spacing, Radius, Elevation ──────────────────────────────────────── -->
+<section class="section">
+  <div class="shell">
+    <div class="section-head">
+      <div>
+        <div class="section-num">04 — Geometry</div>
+        <h2 class="section-h editorial">Spacing. Radius. Elevation.</h2>
+      </div>
+      <p class="section-desc">Everything is multiples of 4. Radii increase linearly with surface importance. Elevation is composite — never just a shadow — pairing a 1-px inner highlight with a long, soft outer cast for material depth.</p>
+    </div>
+
+    <div class="cols-3" style="gap:16px;">
+
+      <!-- Spacing -->
+      <div class="card" style="padding:24px;">
+        <div class="eyebrow" style="margin-bottom:16px;">Spacing · 4-pt base</div>
+        <div style="display:flex; gap:6px; align-items:flex-end; height:96px;">
+          <div style="background:var(--rc-accent); width:4px; height:8px; border-radius:2px;"></div>
+          <div style="background:var(--rc-accent); width:8px; height:16px; border-radius:2px;"></div>
+          <div style="background:var(--rc-accent); width:12px; height:24px; border-radius:2px;"></div>
+          <div style="background:var(--rc-accent); width:16px; height:32px; border-radius:2px;"></div>
+          <div style="background:var(--rc-accent); width:20px; height:48px; border-radius:2px;"></div>
+          <div style="background:var(--rc-accent); width:24px; height:64px; border-radius:2px;"></div>
+          <div style="background:var(--rc-accent); width:32px; height:80px; border-radius:2px;"></div>
+          <div style="background:var(--rc-accent); width:40px; height:96px; border-radius:2px;"></div>
+        </div>
+        <div class="mono" style="font-size:10.5px; color:var(--rc-ink-3); margin-top:14px; letter-spacing:0.06em;">4 · 8 · 12 · 16 · 20 · 24 · 32 · 40 · 48 · 64 · 80 · 96</div>
+      </div>
+
+      <!-- Radius -->
+      <div class="card" style="padding:24px;">
+        <div class="eyebrow" style="margin-bottom:16px;">Radius · 7 stops</div>
+        <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
+          <div style="background:var(--rc-elevated); width:48px; height:48px; border-radius:4px; border:1px solid var(--rc-line);"></div>
+          <div style="background:var(--rc-elevated); width:48px; height:48px; border-radius:6px; border:1px solid var(--rc-line);"></div>
+          <div style="background:var(--rc-elevated); width:48px; height:48px; border-radius:10px; border:1px solid var(--rc-line);"></div>
+          <div style="background:var(--rc-elevated); width:48px; height:48px; border-radius:14px; border:1px solid var(--rc-line);"></div>
+          <div style="background:var(--rc-elevated); width:48px; height:48px; border-radius:18px; border:1px solid var(--rc-line);"></div>
+          <div style="background:var(--rc-elevated); width:48px; height:48px; border-radius:24px; border:1px solid var(--rc-line);"></div>
+          <div style="background:var(--rc-elevated); width:48px; height:48px; border-radius:999px; border:1px solid var(--rc-line);"></div>
+        </div>
+        <div class="mono" style="font-size:10.5px; color:var(--rc-ink-3); margin-top:14px; letter-spacing:0.06em;">xs · sm · md · lg · xl · 2xl · full</div>
+      </div>
+
+      <!-- Elevation -->
+      <div class="card" style="padding:24px;">
+        <div class="eyebrow" style="margin-bottom:16px;">Elevation · 5 levels</div>
+        <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
+          <div style="background:var(--rc-surface); width:56px; height:40px; border-radius:6px; border:1px solid var(--rc-line);"></div>
+          <div style="background:var(--rc-surface); width:56px; height:40px; border-radius:6px; border:1px solid var(--rc-line); box-shadow: var(--elev-1);"></div>
+          <div style="background:var(--rc-surface); width:56px; height:40px; border-radius:6px; border:1px solid var(--rc-line); box-shadow: var(--elev-2);"></div>
+          <div style="background:var(--rc-surface); width:56px; height:40px; border-radius:6px; border:1px solid var(--rc-line); box-shadow: var(--elev-3);"></div>
+          <div style="background:var(--rc-surface); width:56px; height:40px; border-radius:6px; border:1px solid rgba(200,242,92,0.30); box-shadow: var(--elev-glow);"></div>
+        </div>
+        <div class="mono" style="font-size:10.5px; color:var(--rc-ink-3); margin-top:14px; letter-spacing:0.06em;">flat · raised · card · dialog · glow</div>
+      </div>
+    </div>
+
+    <!-- Surfaces stack -->
+    <div style="margin-top:48px;">
+      <div class="section-num">04b — Surfaces</div>
+      <div class="surface-stack" style="margin-top:16px;">
+        <div class="surface-bar s-bg"><span class="surface-name">App shell</span><span class="surface-meta">--rc-bg · graphite-950</span></div>
+        <div class="surface-bar s-sunken"><span class="surface-name">Sunken (input wells)</span><span class="surface-meta">--rc-sunken · graphite-900</span></div>
+        <div class="surface-bar s-surface"><span class="surface-name">Surface (cards)</span><span class="surface-meta">--rc-surface · graphite-800 · +highlight</span></div>
+        <div class="surface-bar s-elevated"><span class="surface-name">Elevated (raised, hover)</span><span class="surface-meta">--rc-elevated · graphite-700 · elev-2</span></div>
+        <div class="surface-bar s-glow"><span class="surface-name">Glow (focused / primary)</span><span class="surface-meta">elev-glow · accent rim</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 05 · Iconography ──────────────────────────────────────── -->
+<section class="section">
+  <div class="shell">
+    <div class="section-head">
+      <div>
+        <div class="section-num">05 — Iconography</div>
+        <h2 class="section-h editorial">Drawn on a 24 grid. <em>Stroked at 1.5</em>.</h2>
+      </div>
+      <p class="section-desc">A proprietary set drawn in-house. 24×24 viewbox, 1.5-px stroke, square caps with optical rounding only on extremities, 2-px corner radius. Subtle asymmetries are intentional — you'll notice that the compass needle, the spark, the lightning, and the trend marker all skew slightly off-grid. That asymmetry is the system's signature.</p>
+    </div>
+
+    <!-- ICON SECTION: NAVIGATION -->
+    <div class="icon-section-title"><span>Navigation · 8</span><span class="mono" style="text-transform:lowercase;">/icons/nav/</span></div>
+    <div class="icon-grid">
+      <!-- compass -->
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.25"/><path d="M14.2 9.8 16.5 7.5l-2.3 6.7-6.7 2.3 2.3-6.7Z"/></svg>
+        <span class="icon-name">compass</span>
+      </div>
+      <!-- pulse / dashboard -->
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3.5l2.2-5.5 3 11 2.5-7 1.8 4 5 -.5"/></svg>
+        <span class="icon-name">pulse</span>
+      </div>
+      <!-- sessions -->
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14.5" rx="2.5"/><path d="M7.5 9.5h9M7.5 13h6"/></svg>
+        <span class="icon-name">sessions</span>
+      </div>
+      <!-- clients -->
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="3.25"/><path d="M3.5 19.5c.7-3.2 3-4.7 5.5-4.7s4.8 1.5 5.5 4.7"/><path d="M16 7.5a3 3 0 0 1 0 5.5"/><path d="M17.5 19.5c-.4-2.4-1.6-3.8-3-4.4"/></svg>
+        <span class="icon-name">clients</span>
+      </div>
+      <!-- revenue -->
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5c0-1.4 3.6-2.5 8-2.5s8 1.1 8 2.5-3.6 2.5-8 2.5-8-1.1-8-2.5Z"/><path d="M4 7.5v9c0 1.4 3.6 2.5 8 2.5s8-1.1 8-2.5v-9"/><path d="M4 12c0 1.4 3.6 2.5 8 2.5s8-1.1 8-2.5"/></svg>
+        <span class="icon-name">revenue</span>
+      </div>
+      <!-- ledger / expenses -->
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4.5h12.5L19 6v13.5H6.5A1.5 1.5 0 0 1 5 18Z"/><path d="M5 18a1.5 1.5 0 0 1 1.5-1.5H19"/><path d="M9 8.5h6M9 11.5h4"/></svg>
+        <span class="icon-name">ledger</span>
+      </div>
+      <!-- insights -->
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 17v.5a3 3 0 0 0 8 0V17"/><path d="M9 13h6"/><path d="M12 3a6 6 0 0 1 4.5 9.8c-.6.7-.8 1.5-.8 2.2H8.3c0-.7-.2-1.5-.8-2.2A6 6 0 0 1 12 3Z"/></svg>
+        <span class="icon-name">insights</span>
+      </div>
+      <!-- search -->
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.25"/><path d="m20 20-4.7-4.7"/></svg>
+        <span class="icon-name">search</span>
+      </div>
+    </div>
+
+    <!-- ICON SECTION: ANALYTICS -->
+    <div class="icon-section-title" style="margin-top:32px;"><span>Analytics · 8</span><span class="mono" style="text-transform:lowercase;">/icons/analytics/</span></div>
+    <div class="icon-grid">
+      <!-- bars -->
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 19.5h15"/><rect x="6" y="13" width="3" height="6" rx="1"/><rect x="11" y="9" width="3" height="10" rx="1"/><rect x="16" y="5" width="3" height="14" rx="1"/></svg>
+        <span class="icon-name">bars</span>
+      </div>
+      <!-- line -->
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5"/><path d="M4 19h16"/><path d="m6.5 15.5 4-5 3.5 2.5 5-7"/><circle cx="6.5" cy="15.5" r="0.6" fill="currentColor"/><circle cx="14" cy="13" r="0.6" fill="currentColor"/></svg>
+        <span class="icon-name">trendline</span>
+      </div>
+      <!-- area -->
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M4 14.5 8 9l4 4 4-7 4 5"/><path d="M4 19V14.5L8 9l4 4 4-7 4 5V19" fill="currentColor" fill-opacity="0.12"/></svg>
+        <span class="icon-name">area</span>
+      </div>
+      <!-- distribution -->
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M4 19c1-6 3-9 5-9s2 6 4 6 3-9 5-9 1.5 4 2 12"/></svg>
+        <span class="icon-name">distribution</span>
+      </div>
+      <!-- target -->
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5.5"/><circle cx="12" cy="12" r="2"/></svg>
+        <span class="icon-name">target</span>
+      </div>
+      <!-- ring -->
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 7 4.5"/></svg>
+        <span class="icon-name">ring</span>
+      </div>
+      <!-- trend up -->
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-6.5 4 4 6-7"/><path d="M14 7.5h6V13.5"/></svg>
+        <span class="icon-name">trend-up</span>
+      </div>
+      <!-- trend down -->
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m4 7 6 6.5 4-4 6 7"/><path d="M14 16.5h6V10.5"/></svg>
+        <span class="icon-name">trend-down</span>
+      </div>
+    </div>
+
+    <!-- ICON SECTION: AI / ACTION -->
+    <div class="icon-section-title" style="margin-top:32px;"><span>AI · Action · 8</span><span class="mono" style="text-transform:lowercase;">/icons/action/</span></div>
+    <div class="icon-grid">
+      <!-- spark -->
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 3.5 12.7 9 18 10.5 12.7 12 11 17.5 9.3 12 4 10.5 9.3 9Z"/><path d="M18 4.5v3M19.5 6h-3"/></svg>
+        <span class="icon-name">spark</span>
+      </div>
+      <!-- lightning -->
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3 6 13h5l-1.5 8 8.5-10h-5Z"/></svg>
+        <span class="icon-name">lightning</span>
+      </div>
+      <!-- predict -->
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="11" r="5.25"/><path d="m13 15 6 6"/><path d="M9 8.75v2.25h2.25"/></svg>
+        <span class="icon-name">predict</span>
+      </div>
+      <!-- automate -->
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 13-6.2"/><path d="M20 12a8 8 0 0 1-13 6.2"/><path d="M14.5 4.5h2.5V7"/><path d="M9.5 19.5H7V17"/></svg>
+        <span class="icon-name">automate</span>
+      </div>
+      <!-- refine -->
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 18 8.5-8.5 2 2L8 20H6Z"/><path d="m13.5 11 2 2"/><path d="M16.5 6.5 18 5l2 2-1.5 1.5"/></svg>
+        <span class="icon-name">refine</span>
+      </div>
+      <!-- play / start -->
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 5.5v13l11-6.5Z"/></svg>
+        <span class="icon-name">start</span>
+      </div>
+      <!-- plus -->
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        <span class="icon-name">add</span>
+      </div>
+      <!-- check -->
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.5 4.5 4.5L20 6.5"/></svg>
+        <span class="icon-name">check</span>
+      </div>
+    </div>
+
+    <!-- ICON SECTION: STATUS -->
+    <div class="icon-section-title" style="margin-top:32px;"><span>Status · 8</span><span class="mono" style="text-transform:lowercase;">/icons/status/</span></div>
+    <div class="icon-grid">
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#86d97a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>
+        <span class="icon-name">success</span>
+      </div>
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#e8b268" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5 21 19.5H3Z"/><path d="M12 10v4"/><circle cx="12" cy="17" r="0.6" fill="currentColor"/></svg>
+        <span class="icon-name">warning</span>
+      </div>
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ee6a5a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>
+        <span class="icon-name">error</span>
+      </div>
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5l3 2.5"/></svg>
+        <span class="icon-name">pending</span>
+      </div>
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 8.5A8 8 0 0 0 5.5 7.5"/><path d="M4 15.5A8 8 0 0 0 18.5 16.5"/><path d="M16 6.5h4V3"/><path d="M8 17.5H4V21"/></svg>
+        <span class="icon-name">syncing</span>
+      </div>
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><circle cx="12" cy="15.5" r="0.6" fill="currentColor"/></svg>
+        <span class="icon-name">info</span>
+      </div>
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 4 8v6c0 4.5 3.5 6.7 8 6.5 4.5.2 8-2 8-6.5V8Z"/><path d="m9 12 2.5 2.5L15.5 10.5"/></svg>
+        <span class="icon-name">verified</span>
+      </div>
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4"/><circle cx="12" cy="9" r="3.75"/><path d="M18.5 5.5 16 8"/></svg>
+        <span class="icon-name">activity</span>
+      </div>
+    </div>
+
+    <!-- ICON SECTION: SETTINGS / SYSTEM -->
+    <div class="icon-section-title" style="margin-top:32px;"><span>Settings · System · 8</span><span class="mono" style="text-transform:lowercase;">/icons/system/</span></div>
+    <div class="icon-grid">
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.75"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.5 5.5l2.1 2.1M16.4 16.4l2.1 2.1M5.5 18.5l2.1-2.1M16.4 7.6l2.1-2.1"/></svg>
+        <span class="icon-name">cog</span>
+      </div>
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.75"/><path d="M5 19a7 7 0 0 1 14 0"/></svg>
+        <span class="icon-name">profile</span>
+      </div>
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/></svg>
+        <span class="icon-name">lock</span>
+      </div>
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="11" r="5"/><path d="m13 11 7 7-2 2-1.5-1.5L15 20l-2-2"/></svg>
+        <span class="icon-name">key</span>
+      </div>
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 17.5h13L17 14V10a5 5 0 0 0-10 0v4Z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>
+        <span class="icon-name">bell</span>
+      </div>
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18Z" fill="currentColor"/></svg>
+        <span class="icon-name">theme</span>
+      </div>
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H10"/></svg>
+        <span class="icon-name">logout</span>
+      </div>
+      <div class="icon-cell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M4 12h16"/><circle cx="12" cy="12" r="9"/></svg>
+        <span class="icon-name">global</span>
+      </div>
+    </div>
+
+    <!-- Sizing rules -->
+    <div style="margin-top:48px;">
+      <div class="section-num">05b — Sizing rules</div>
+      <div class="cols-3" style="gap:16px; margin-top:16px;">
+        <div class="card" style="padding:24px;">
+          <div class="eyebrow" style="margin-bottom:14px;">Inline (12px)</div>
+          <div style="display:flex; gap:12px; align-items:center; color:var(--rc-ink-2); font-size:13px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5l3 2.5"/></svg>
+            <span>Stroke 1.6 · for body inline use</span>
+          </div>
+        </div>
+        <div class="card" style="padding:24px;">
+          <div class="eyebrow" style="margin-bottom:14px;">UI (16-20px)</div>
+          <div style="display:flex; gap:12px; align-items:center; color:var(--rc-ink); font-size:14px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5l3 2.5"/></svg>
+            <span>Stroke 1.5 · default in UI</span>
+          </div>
+        </div>
+        <div class="card" style="padding:24px;">
+          <div class="eyebrow" style="margin-bottom:14px;">Display (28-48px)</div>
+          <div style="display:flex; gap:14px; align-items:center; color:var(--rc-ink); font-size:14px;">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5l3 2.5"/></svg>
+            <span>Stroke 1.4 · empty-state, marketing</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 06 · Components ──────────────────────────────────────── -->
+<section class="section">
+  <div class="shell">
+    <div class="section-head">
+      <div>
+        <div class="section-num">06 — Components</div>
+        <h2 class="section-h editorial">Buttons, inputs, pills, <em>and the rest</em>.</h2>
+      </div>
+      <p class="section-desc">Every component is a thin layer over the design tokens. Each shows its rest, hover, focus, and disabled state — exactly as the production code does.</p>
+    </div>
+
+    <div class="cols-2">
+      <!-- Buttons -->
+      <div class="card" style="padding:32px;">
+        <div class="eyebrow" style="margin-bottom:20px;">Buttons · 4 variants × 4 states</div>
+        <div style="display:grid; gap:16px;">
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn btn-primary">Log revenue</button>
+            <button class="btn btn-accent">Connect</button>
+            <button class="btn btn-secondary">Mark complete</button>
+            <button class="btn btn-ghost">Cancel</button>
+          </div>
+          <div class="mono" style="font-size:11px; color:var(--rc-ink-3); letter-spacing:0.06em;">PRIMARY · ACCENT · SECONDARY · GHOST</div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn btn-primary" style="box-shadow: 0 0 0 3px var(--signal-glow), 0 0 0 1px rgba(200,242,92,0.6) inset;">Focused</button>
+            <button class="btn btn-primary" disabled style="opacity:0.4">Disabled</button>
+            <button class="btn btn-secondary" style="background:#1f222a; border-color:#303542;">Hover</button>
+            <button class="btn btn-secondary" style="background:#16181e">Active</button>
+          </div>
+          <div class="mono" style="font-size:11px; color:var(--rc-ink-3); letter-spacing:0.06em;">FOCUSED · DISABLED · HOVER · ACTIVE</div>
+        </div>
+      </div>
+
+      <!-- Inputs -->
+      <div class="card" style="padding:32px;">
+        <div class="eyebrow" style="margin-bottom:20px;">Inputs</div>
+        <div style="display:grid; gap:14px;">
+          <div>
+            <div class="eyebrow" style="margin-bottom:8px; font-size:10.5px;">Email</div>
+            <input class="input" placeholder="you@example.com" />
+          </div>
+          <div>
+            <div class="eyebrow" style="margin-bottom:8px; font-size:10.5px;">Search</div>
+            <div style="position:relative;">
+              <svg style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--rc-ink-4)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.25"/><path d="m20 20-4.7-4.7"/></svg>
+              <input class="input" placeholder="Find a client…" style="padding-left:34px;" />
+            </div>
+          </div>
+          <div>
+            <div class="eyebrow" style="margin-bottom:8px; font-size:10.5px;">Focused state</div>
+            <input class="input" value="Anya Sokolov" style="border-color:var(--rc-accent); box-shadow: 0 0 0 3px var(--signal-glow); background: var(--rc-surface);" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Pills -->
+      <div class="card" style="padding:32px;">
+        <div class="eyebrow" style="margin-bottom:20px;">Pills · status, trend, value</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <span class="pill">Default</span>
+          <span class="pill pill-up">↑ 12%</span>
+          <span class="pill pill-down">↓ 4%</span>
+          <span class="pill pill-warn">3 unpaid</span>
+          <span class="pill" style="background:rgba(200,242,92,0.08); color:var(--rc-accent); border-color:rgba(200,242,92,0.30)">+ accent</span>
+        </div>
+      </div>
+
+      <!-- Metric card -->
+      <div class="card" style="padding:32px;">
+        <div class="eyebrow" style="margin-bottom:20px;">Metric card · accent</div>
+        <div style="background: linear-gradient(180deg, rgba(255,255,255,0.014), rgba(255,255,255,0) 40%), radial-gradient(600px 200px at 0% 0%, rgba(200,242,92,0.06), transparent 60%), var(--rc-surface); border:1px solid #2a2d36; border-radius:14px; padding:20px; position:relative; overflow:hidden;">
+          <div style="position:absolute; left:0; top:0; bottom:0; width:2px; background:linear-gradient(180deg, var(--rc-accent), transparent 70%); opacity:0.85;"></div>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px;">
+            <div class="eyebrow">Coaching revenue</div>
+            <span class="pill pill-up">↑ 18%</span>
+          </div>
+          <div class="display tnum" style="font-size:34px; color:var(--rc-accent); font-variant-numeric:tabular-nums;">€7,840</div>
+          <div style="font-size:13px; color:var(--rc-ink-2); margin-top:8px;">Tracking 8% above last month — two pack renewals are due.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 07 · Empty state & loading ──────────────────────────────────────── -->
+<section class="section">
+  <div class="shell">
+    <div class="section-head">
+      <div>
+        <div class="section-num">07 — Empty · Loading</div>
+        <h2 class="section-h editorial">Patient. Specific. <em>Never cute</em>.</h2>
+      </div>
+      <p class="section-desc">Empty states use the dial motif at low opacity, a single sentence of guidance, and one CTA — never zero, never two. Skeletons shimmer at 1.6s, only ever in graphite-700 → 600 — the accent is forbidden in placeholders.</p>
+    </div>
+
+    <div class="cols-3">
+
+      <!-- EMPTY: no clients -->
+      <div class="card illust-card">
+        <div class="illust-card-art">
+          <svg viewBox="0 0 200 140" width="200" height="140">
+            <defs>
+              <pattern id="dial-2" width="40" height="40" patternUnits="userSpaceOnUse">
+                <circle cx="20" cy="20" r="14" fill="none" stroke="#23262e" stroke-width="0.6"/>
+                <line x1="20" y1="4"  x2="20" y2="8" stroke="#23262e" stroke-width="0.6"/>
+                <line x1="20" y1="32" x2="20" y2="36" stroke="#23262e" stroke-width="0.6"/>
+              </pattern>
+            </defs>
+            <rect width="200" height="140" fill="url(#dial-2)"/>
+            <g transform="translate(100,70)">
+              <circle r="32" fill="none" stroke="#3a3e49" stroke-width="1.4"/>
+              <circle r="32" fill="none" stroke="#c8f25c" stroke-width="1.4" stroke-dasharray="40 200" stroke-linecap="round" transform="rotate(-90)" style="filter:drop-shadow(0 0 4px rgba(200,242,92,0.6))"/>
+              <text y="5" text-anchor="middle" font-family="Geist Mono, monospace" font-size="13" fill="#f4f4f1" letter-spacing="0.5">0</text>
+            </g>
+          </svg>
+        </div>
+        <div>
+          <div class="display" style="font-size:18px; margin-bottom:6px;">No clients yet.</div>
+          <p style="font-size:13px; color:var(--rc-ink-2); margin:0 0 16px; line-height:1.6;">Start with one — the people you already coach. Compass builds the system around your real roster.</p>
+          <button class="btn btn-primary">Add a client</button>
+        </div>
+      </div>
+
+      <!-- EMPTY: no revenue -->
+      <div class="card illust-card">
+        <div class="illust-card-art">
+          <svg viewBox="0 0 200 140" width="200" height="140">
+            <g transform="translate(20,100)">
+              <line x1="0" y1="0" x2="160" y2="0" stroke="#23262e" stroke-width="1"/>
+              <rect x="10" y="-20" width="22" height="20" rx="2" fill="#1f2129" stroke="#3a3e49" stroke-width="1"/>
+              <rect x="42" y="-32" width="22" height="32" rx="2" fill="#1f2129" stroke="#3a3e49" stroke-width="1"/>
+              <rect x="74" y="-50" width="22" height="50" rx="2" fill="#1f2129" stroke="#3a3e49" stroke-width="1"/>
+              <rect x="106" y="-44" width="22" height="44" rx="2" fill="#1f2129" stroke="#3a3e49" stroke-width="1"/>
+              <rect x="138" y="-30" width="22" height="30" rx="2" fill="#c8f25c" stroke="#c8f25c" stroke-width="0" style="filter:drop-shadow(0 0 6px rgba(200,242,92,0.5))"/>
+            </g>
+          </svg>
+        </div>
+        <div>
+          <div class="display" style="font-size:18px; margin-bottom:6px;">No revenue logged.</div>
+          <p style="font-size:13px; color:var(--rc-ink-2); margin:0 0 16px; line-height:1.6;">Log the last paid offer. From one entry, Compass starts modelling momentum.</p>
+          <button class="btn btn-primary">Log revenue</button>
+        </div>
+      </div>
+
+      <!-- LOADING: skeleton card -->
+      <div class="card illust-card">
+        <div class="illust-card-art" style="padding:20px; align-items:flex-start; justify-content:flex-start; flex-direction:column; gap:10px;">
+          <div class="skeleton" style="width:50%; height:10px;"></div>
+          <div class="skeleton" style="width:30%; height:24px;"></div>
+          <div class="skeleton" style="width:80%; height:8px;"></div>
+          <div class="skeleton" style="width:60%; height:8px;"></div>
+        </div>
+        <div>
+          <div class="display" style="font-size:18px; margin-bottom:6px;">Loading state.</div>
+          <p style="font-size:13px; color:var(--rc-ink-2); margin:0; line-height:1.6;">Shimmer in graphite-700 → 600 only. <span class="mono" style="font-size:11px;">duration 1.6s · ease-standard</span></p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ─── 08 · Motion ──────────────────────────────────────── -->
+<section class="section">
+  <div class="shell">
+    <div class="section-head">
+      <div>
+        <div class="section-num">08 — Motion</div>
+        <h2 class="section-h editorial">Five durations. One curve <em>does the work</em>.</h2>
+      </div>
+      <p class="section-desc">Standard motion uses <span class="mono" style="color:var(--rc-ink)">cubic-bezier(.2,.7,0,1)</span> — a long, late-settling decel that reads as authoritative. Emphasis curve <span class="mono" style="color:var(--rc-ink)">(.16,1,.3,1)</span> is reserved for hero entries; exit curve is symmetric. Below: the timing scale.</p>
+    </div>
+
+    <div class="card" style="padding:32px;">
+      <div class="timing-row">
+        <div class="mono" style="font-size:12px; letter-spacing:0.06em;"><b style="color:var(--rc-ink)">--dur-instant</b><br/><span style="color:var(--rc-ink-3)">tooltip · hover-tip</span></div>
+        <div class="timing-track"><div class="timing-pip" id="pip-1"></div></div>
+        <div class="mono" style="font-size:11px; color:var(--rc-ink-3);">80ms</div>
+      </div>
+      <div class="timing-row">
+        <div class="mono" style="font-size:12px; letter-spacing:0.06em;"><b style="color:var(--rc-ink)">--dur-quick</b><br/><span style="color:var(--rc-ink-3)">button · hover · pill</span></div>
+        <div class="timing-track"><div class="timing-pip" id="pip-2"></div></div>
+        <div class="mono" style="font-size:11px; color:var(--rc-ink-3);">160ms</div>
+      </div>
+      <div class="timing-row">
+        <div class="mono" style="font-size:12px; letter-spacing:0.06em;"><b style="color:var(--rc-ink)">--dur-base</b><br/><span style="color:var(--rc-ink-3)">card · panel · default</span></div>
+        <div class="timing-track"><div class="timing-pip" id="pip-3"></div></div>
+        <div class="mono" style="font-size:11px; color:var(--rc-ink-3);">240ms</div>
+      </div>
+      <div class="timing-row">
+        <div class="mono" style="font-size:12px; letter-spacing:0.06em;"><b style="color:var(--rc-ink)">--dur-slow</b><br/><span style="color:var(--rc-ink-3)">slide-over · drawer</span></div>
+        <div class="timing-track"><div class="timing-pip" id="pip-4"></div></div>
+        <div class="mono" style="font-size:11px; color:var(--rc-ink-3);">420ms</div>
+      </div>
+      <div class="timing-row">
+        <div class="mono" style="font-size:12px; letter-spacing:0.06em;"><b style="color:var(--rc-ink)">--dur-deliberate</b><br/><span style="color:var(--rc-ink-3)">chart-grow · ring fill</span></div>
+        <div class="timing-track"><div class="timing-pip" id="pip-5"></div></div>
+        <div class="mono" style="font-size:11px; color:var(--rc-ink-3);">720ms</div>
+      </div>
+    </div>
+
+    <div class="cols-2" style="margin-top:24px;">
+      <div class="spec"><b><span class="k">// Framer Motion — system defaults</span></b>
+
+<b>const</b> ease = <span class="k">[</span>0.2, 0.7, 0, 1<span class="k">]</span>;
+<b>const</b> easeEmphasis = <span class="k">[</span>0.16, 1, 0.3, 1<span class="k">]</span>;
+
+<b>export const</b> rcSpring = {
+  type: <span class="k">"tween"</span>,
+  ease,
+  duration: 0.24
+};
+
+<b>export const</b> rcEntry = {
+  initial: { y: 6, opacity: 0, filter: <span class="k">"blur(4px)"</span> },
+  animate: { y: 0, opacity: 1, filter: <span class="k">"blur(0)"</span> },
+  transition: { ...rcSpring, duration: 0.48, ease: easeEmphasis }
+};</div>
+
+      <div class="spec"><b><span class="k">// Animation principles</span></b>
+
+<span class="c">// 1 · only one element moves at a time</span>
+<span class="c">//     — siblings stagger, never collide</span>
+<span class="c">// 2 · stagger 40ms between peer elements</span>
+<span class="c">// 3 · enter ≠ exit duration; exit is faster</span>
+<span class="c">//     (180ms · ease-exit)</span>
+<span class="c">// 4 · accent glow scales 1→1.04 max,</span>
+<span class="c">//     never bigger — the value, not the chrome,</span>
+<span class="c">//     is what the eye is supposed to follow</span>
+<span class="c">// 5 · charts grow once on mount, never on</span>
+<span class="c">//     filter change — re-renders cross-fade</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 09 · Tokens & developer handoff ──────────────────────────────────────── -->
+<section class="section">
+  <div class="shell">
+    <div class="section-head">
+      <div>
+        <div class="section-num">09 — Handoff</div>
+        <h2 class="section-h editorial">Naming. Folders. <em>Discipline</em>.</h2>
+      </div>
+      <p class="section-desc">A conventions document. The icon export pipeline, the token tier strategy, and the recommended runtime stack. This is the contract between design and engineering.</p>
+    </div>
+
+    <div class="cols-2">
+      <div class="spec"><b><span class="k">// Token tiers — names you may use in app code</span></b>
+
+<b>Tier 1 — primitives</b>      <span class="c">/* never reference in app code */</span>
+  --graphite-{1000…0}
+  --signal-{100…500}
+  --positive-300, --warning-300, --critical-300
+
+<b>Tier 2 — semantic</b>          <span class="c">/* prefer these */</span>
+  --rc-bg, --rc-surface, --rc-sunken, --rc-elevated
+  --rc-line, --rc-line-soft
+  --rc-ink, --rc-ink-2, --rc-ink-3, --rc-ink-4
+  --rc-accent
+
+<b>Tier 3 — component</b>         <span class="c">/* component-scoped only */</span>
+  --rc-btn-primary-bg
+  --rc-card-shadow
+  --rc-input-focus-ring</div>
+
+      <div class="spec"><b><span class="k">// Folder layout</span></b>
+
+design-system/
+├─ tokens/
+│  ├─ <b>primitives.css</b>      <span class="c">// graphite, signal, state</span>
+│  ├─ <b>semantic.css</b>        <span class="c">// rc-bg, rc-ink, etc.</span>
+│  ├─ <b>spacing.css</b>
+│  ├─ <b>radius.css</b>
+│  ├─ <b>elevation.css</b>
+│  └─ <b>motion.css</b>
+├─ icons/
+│  ├─ <b>nav/</b>                 <span class="c">// 8 — compass, pulse…</span>
+│  ├─ <b>analytics/</b>           <span class="c">// 8 — bars, ring…</span>
+│  ├─ <b>action/</b>              <span class="c">// 8 — spark, lightning…</span>
+│  ├─ <b>status/</b>              <span class="c">// 8 — success, warning…</span>
+│  └─ <b>system/</b>              <span class="c">// 8 — cog, lock, theme…</span>
+├─ components/
+│  ├─ Button/    Input/    Pill/
+│  ├─ Card/      Topbar/   Panel/
+│  └─ MetricCard/  ChartCard/
+└─ patterns/
+   ├─ EmptyState/
+   ├─ Skeleton/
+   └─ Onboarding/</div>
+
+      <div class="spec"><b><span class="k">// Icon export pipeline</span></b>
+
+<span class="c">// 1 · author in Figma · 24×24 frame · 1.5 stroke</span>
+<span class="c">// 2 · run svgo with config:</span>
+{
+  multipass: <b>true</b>,
+  plugins: [
+    'preset-default',
+    { name: 'removeAttrs',
+      params: { attrs: '(stroke|fill)' } }
+  ]
+}
+<span class="c">// 3 · output as React components — currentColor only</span>
+<b>export const</b> CompassIcon = (props) => (
+  <svg viewBox=<span class="k">"0 0 24 24"</span> fill=<span class="k">"none"</span>
+       stroke=<span class="k">"currentColor"</span> strokeWidth={<b>1.5</b>}
+       strokeLinecap=<span class="k">"round"</span>
+       strokeLinejoin=<span class="k">"round"</span> {...props}>
+    {/* paths */}
+  </svg>
+);</div>
+
+      <div class="spec"><b><span class="k">// Recommended runtime stack</span></b>
+
+<b>Framework</b>      Next.js 15 (app router)
+<b>Styling</b>        Tailwind v4 + CSS variables
+<b>Animation</b>      Framer Motion · system curves only
+<b>Charts</b>         Visx (composable) <b>or</b> Recharts
+<b>Icons</b>          Custom (above) — interim: Phosphor
+                  <span class="c">// avoid Heroicons / Lucide / Feather</span>
+
+<b>Performance</b>
+  · use will-change: transform sparingly
+  · prefer transform/opacity over layout props
+  · subpixel via -webkit-font-smoothing: antialiased
+  · backdrop-filter only on topbar + overlay (2 layers max)
+  · disable the body radial-gradient on prefers-reduced-data
+  · inline SVG, not icon font; 100% currentColor</div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Footer ──────────────────────────────────────── -->
+<footer>
+  <div class="shell foot">
+    <div>
+      <div class="brandmark" style="margin-bottom:14px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.25"/><path d="M14.2 9.8 16.5 7.5l-2.3 6.7-6.7 2.3 2.3-6.7Z" fill="currentColor" fill-opacity="0.18"/></svg>
+      </div>
+      <div class="display" style="font-size:18px; color:var(--rc-ink); margin-bottom:6px;">Performance Graphite</div>
+      <div class="mono" style="font-size:11px; color:var(--rc-ink-3); letter-spacing:0.06em;">v1.0.0 · May 2026 · Owners: Design Eng</div>
+    </div>
+    <div>
+      <p>This document is the canonical specification for Revenue Compass UI. Diverge from it only with a written exception filed in <span class="mono" style="color:var(--rc-ink)">/design-system/exceptions/</span>. Tokens are enforced via lint; icons are enforced via codegen. Components ship with visual regression tests at three viewport widths.</p>
+      <p style="margin-top:14px;">Avoid: generic AI gradients · neon cyberpunk · excessive glassmorphism · cartoonish onboarding · flat startup defaults · "friendly AI" rounding · stock Tailwind chrome.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Animate the timing pips so the curve is felt, not just labelled.
+  const ease = 'cubic-bezier(.2,.7,0,1)';
+  const durations = [80, 160, 240, 420, 720];
+  const els = [1,2,3,4,5].map(n => document.getElementById('pip-' + n));
+  function runOnce() {
+    els.forEach((el, i) => {
+      if (!el) return;
+      const track = el.parentElement;
+      const max = track.clientWidth - el.offsetWidth - 8;
+      el.style.transition = 'transform 0s';
+      el.style.transform = 'translateX(0)';
+      // force layout
+      el.offsetHeight;
+      el.style.transition = `transform ${durations[i]}ms ${ease}`;
+      requestAnimationFrame(() => { el.style.transform = `translateX(${max}px)`; });
+      setTimeout(() => {
+        el.style.transition = `transform ${durations[i] * 0.6}ms cubic-bezier(.4,0,.6,1)`;
+        el.style.transform = 'translateX(0)';
+      }, durations[i] + 1200);
+    });
+  }
+  runOnce();
+  setInterval(runOnce, 3500);
+</script>
+
+</body>
+</html>
